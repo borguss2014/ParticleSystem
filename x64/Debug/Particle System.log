@@ -1,0 +1,5 @@
+﻿  main.cpp
+C:\Users\Root\source\repos\Particle System\main.cpp(51,27): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+  window.cpp
+  Generating Code...
+  Particle System.vcxproj -> C:\Users\Root\source\repos\Particle System\x64\Debug\Particle System.exe

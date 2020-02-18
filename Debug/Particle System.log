@@ -1,0 +1,18 @@
+﻿main.obj : error LNK2019: unresolved external symbol _glfwTerminate referenced in function _main
+window.obj : error LNK2001: unresolved external symbol _glfwTerminate
+main.obj : error LNK2019: unresolved external symbol _glfwWindowShouldClose referenced in function _main
+main.obj : error LNK2019: unresolved external symbol _glfwSetWindowTitle referenced in function _main
+main.obj : error LNK2019: unresolved external symbol _glfwPollEvents referenced in function _main
+main.obj : error LNK2019: unresolved external symbol _glfwGetTime referenced in function _main
+main.obj : error LNK2019: unresolved external symbol _glfwSwapBuffers referenced in function _main
+main.obj : error LNK2019: unresolved external symbol _glfwGetProcAddress referenced in function _main
+window.obj : error LNK2019: unresolved external symbol _glfwInit referenced in function "public: void __thiscall window::Init(struct window_props)" (?Init@window@@QAEXUwindow_props@@@Z)
+window.obj : error LNK2019: unresolved external symbol _glfwWindowHint referenced in function "public: void __thiscall window::Init(struct window_props)" (?Init@window@@QAEXUwindow_props@@@Z)
+window.obj : error LNK2019: unresolved external symbol _glfwCreateWindow referenced in function "public: void __thiscall window::Init(struct window_props)" (?Init@window@@QAEXUwindow_props@@@Z)
+window.obj : error LNK2019: unresolved external symbol _glfwSetWindowShouldClose referenced in function "void __cdecl key_callback(struct GLFWwindow *,int,int,int,int)" (?key_callback@@YAXPAUGLFWwindow@@HHHH@Z)
+window.obj : error LNK2019: unresolved external symbol _glfwSetWindowPos referenced in function "public: void __thiscall window::Init(struct window_props)" (?Init@window@@QAEXUwindow_props@@@Z)
+window.obj : error LNK2019: unresolved external symbol _glfwSetFramebufferSizeCallback referenced in function "public: void __thiscall window::Init(struct window_props)" (?Init@window@@QAEXUwindow_props@@@Z)
+window.obj : error LNK2019: unresolved external symbol _glfwSetKeyCallback referenced in function "public: void __thiscall window::Init(struct window_props)" (?Init@window@@QAEXUwindow_props@@@Z)
+window.obj : error LNK2019: unresolved external symbol _glfwMakeContextCurrent referenced in function "public: void __thiscall window::Init(struct window_props)" (?Init@window@@QAEXUwindow_props@@@Z)
+C:\Users\Root\source\repos\Particle System\libs\glfw-3.3.2.bin.WIN64\lib-vc2019\glfw3.lib : warning LNK4272: library machine type 'x64' conflicts with target machine type 'x86'
+C:\Users\Root\source\repos\Particle System\Debug\Particle System.exe : fatal error LNK1120: 15 unresolved externals
