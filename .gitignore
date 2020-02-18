@@ -355,3 +355,6 @@ MigrationBackup/
 # Project libraries
 libs/
 .vs/
+*.vcxproj
+*.vcxproj.filters
+*.sln
