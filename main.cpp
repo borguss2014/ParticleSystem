@@ -42,7 +42,6 @@ int main(int argc, char* argv[])
     data.emissionRate = 5;
    
     particle_system particleSystem(data);
-    
     particleSystem.Init();
     particleSystem.Emit();
 

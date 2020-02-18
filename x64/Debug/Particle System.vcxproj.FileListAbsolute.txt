@@ -1,2 +1,0 @@
-C:\Users\Root\source\repos\Particle System\x64\Debug\Particle System.exe
-C:\Users\Root\source\repos\Particle System\x64\Debug\Particle System.pdb
