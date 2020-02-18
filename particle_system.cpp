@@ -1,7 +1,7 @@
 #include "particle_system.h"
 
 particle_system::particle_system(const particle_data& pAttributes, int maxParticles)
-	: totalParticles(maxParticles), particleAttributes(pAttributes)
+	: totalParticles(maxParticles), particleAttr(pAttributes)
 {
 	position = std::make_unique<std::vector<glm::vec2>>();
 	velocity = std::make_unique<std::vector<glm::vec2>>();
@@ -21,6 +21,8 @@ particle_system::particle_system(const particle_data& pAttributes, int maxPartic
     int totalDataSize = particleSize * totalParticles;
 	compiledData = std::make_unique<std::vector<float>>();
     compiledData->resize(totalDataSize);
+    compiledDataIndex = std::make_unique<std::vector<int>>();
+    compiledDataIndex->resize(indicesPerQuad*totalParticles);
 }
 
 void particle_system::Init()
@@ -28,52 +30,61 @@ void particle_system::Init()
     int vertexAttribIndex = 0;
     int colorAttribIndex = 1;
     
-	int pointComponents = vertexComponents + colorComponents;
-	int totalDataSize = 6 * pointComponents * sizeof(GLfloat);
-
-	GLint indices[] = {
-		2,3,1,
-		3,0,1
-	};
+	int pointAttr = vertexComponents + colorComponents;
+	int totalDataSize = 6 * pointAttr * sizeof(GLfloat);
+    
+    int quadIndex = 0;
+    for(int i = 0; i < totalDataSize; i+=6) {
+        compiledDataIndex->at(i)   = 0 + vertsPerQuad * quadIndex;
+        compiledDataIndex->at(i+1) = 1 + vertsPerQuad * quadIndex;
+        compiledDataIndex->at(i+2) = 3 + vertsPerQuad * quadIndex;
+        
+        compiledDataIndex->at(i+3) = 1 + vertsPerQuad * quadIndex;
+        compiledDataIndex->at(i+4) = 2 + vertsPerQuad * quadIndex;
+        compiledDataIndex->at(i+5) = 3 + vertsPerQuad * quadIndex;
+        quadIndex++;
+    }
 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
 
 	glBindVertexArray(VAO);
+    
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, compiledDataIndex->size() * sizeof(GLfloat), &compiledDataIndex->at(0), GL_STATIC_DRAW);
+    
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, totalDataSize, nullptr, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, compiledData->size() * sizeof(GLfloat), nullptr, GL_DYNAMIC_DRAW);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), nullptr, GL_STATIC_DRAW);
-
-	glVertexAttribPointer(vertexAttribIndex, vertexComponents, GL_FLOAT, GL_FALSE, pointComponents * sizeof(GLfloat), (void*)0);
+	glVertexAttribPointer(vertexAttribIndex, vertexComponents, GL_FLOAT, GL_FALSE, pointAttr * sizeof(GLfloat), (void*)0);
 	glEnableVertexAttribArray(0);
 
-	glVertexAttribPointer(colorAttribIndex, colorComponents, GL_FLOAT, GL_FALSE, pointComponents * sizeof(GLfloat), (void*)(vertexComponents * sizeof(GLfloat)));
+	glVertexAttribPointer(colorAttribIndex, colorComponents, GL_FLOAT, GL_FALSE, pointAttr * sizeof(GLfloat), (void*)(vertexComponents * sizeof(GLfloat)));
 	glEnableVertexAttribArray(1);
     
-//    particlesShader = std::make_unique<Shader>("Shaders/vertex.vs", "Shaders/fragment.fs");
+    particlesShader = std::make_unique<Shader>("Shaders/vertex.vs", "Shaders/fragment.fs");
+    
+    glEnable(GL_BLEND);
 
 	std::cout << "Particle system initialized" << std::endl;
 }
 
 void particle_system::Emit()
 {
-	if (lastActiveParticle + 1 == totalParticles) {
-		std::cout << "Limit reached! Cannot add more particles" << std::endl;
-		return;
-	}
-    
     emitting = true;
+}
+
+void particle_system::Stop()
+{
+    emitting = false;
 }
 
 void particle_system::Destroy(const int index)
 {
-    std::cout << "Particle destroy: Swapping particle @ " << index << " with " << lastActiveParticle << std::endl;
-    
     if (lastActiveParticle > 0) {
         SwapData(index, lastActiveParticle);
+        std::cout << "Particle destroy: Swapping particle @ " << index << " with " << lastActiveParticle << std::endl;
     }
     
     lastActiveParticle--;
@@ -93,10 +104,10 @@ void particle_system::PrepareUploadData()
 {
 	if (lastActiveParticle >= 0) {
 		float quadVertices[] = {
-			-0.5f, -0.5f, 0.0f,
-			-0.5f,  0.5f, 0.0f,
-			 0.5f,  0.5f, 0.0f,
-			 0.5f, -0.5f, 0.0f
+            0.5f,  0.5f, 0.0f,
+            0.5f, -0.5f, 0.0f,
+            -0.5f, -0.5f, 0.0f,
+            -0.5f,  0.5f, 0.0f
 		};
 
 		int totalPositionFloats = vertexComponents * vertsPerQuad;
@@ -117,33 +128,55 @@ void particle_system::PrepareUploadData()
 			}
 		} // FOR END
 	} // IF END
+    
+//    int particleSize = vertexComponents * vertsPerQuad + colorComponents * vertsPerQuad;
+//    int totalDataSize = particleSize * totalParticles;
+//
+//    std::cout << "================DATA BEGIN================" << std::endl;
+//    for(int i = 0; i < totalDataSize; i++) {
+//        std::cout << compiledData->at(i) << " ";
+//
+//        if((i+1) % 7 == 0) {
+//            std::cout << std::endl;
+//        }
+//    }
+//    std::cout << "================DATA END================" << std::endl;
 }
 
 void particle_system::UploadToGPU()
 {
-    glBindVertexArray(VAO);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, compiledData->size() * sizeof(float), &compiledData);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    //glBufferData(GL_ARRAY_BUFFER, compiledData->size() * sizeof(GLfloat), nullptr, GL_DYNAMIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, compiledData->size() * sizeof(GLfloat), &compiledData->at(0));
 }
 
 void particle_system::Update(timestep ts)
 {
+    if(!emitting) {
+        return;
+    }
+    
 	float delta = ts.GetSeconds();
     
-    msElapsed += delta;
+    msElapsed += ts.GetMilliseconds();
     
     // Timed particle emission
-    if(msElapsed >= emissionRate) {
-        size_t firstInactivePIndex = lastActiveParticle + 1;
-
-        position->at(firstInactivePIndex) = particleAttributes.position;
-        velocity->at(firstInactivePIndex) = particleAttributes.velocity;
-        colorBegin->at(firstInactivePIndex) = particleAttributes.colorBegin;
-        colorEnd->at(firstInactivePIndex) = particleAttributes.colorEnd;
-        totalLife->at(firstInactivePIndex) = particleAttributes.totalLife;
-
-        lastActiveParticle++;
-        msElapsed = 0;
-        std::cout << "Particle @ index " << lastActiveParticle << " created" << std::endl;
+    if(lastActiveParticle + 1 < totalParticles) {
+        if(msElapsed >= (1000 / particleAttr.emissionRate)) {
+            size_t firstInactivePIndex = lastActiveParticle + 1;
+            position->at(firstInactivePIndex) = particleAttr.position;
+            velocity->at(firstInactivePIndex) = particleAttr.velocity;
+            colorBegin->at(firstInactivePIndex) = particleAttr.colorBegin;
+            colorEnd->at(firstInactivePIndex) = particleAttr.colorEnd;
+            totalLife->at(firstInactivePIndex) = particleAttr.totalLife;
+            lastActiveParticle++;
+            
+            msElapsed = 0;
+            std::cout << "Particle @ index " << lastActiveParticle << " created" << std::endl;
+        }
+    }
+    else {
+        std::cout << "Limit reached! Cannot add more particles" << std::endl;
     }
     
     // Particle state update
@@ -159,15 +192,21 @@ void particle_system::Update(timestep ts)
 			position->at(i) += velocity->at(i) * delta;
 
 			// Lerp begin & end colors based on remaining life
-			color->at(i) = glm::mix(colorBegin->at(i), colorEnd->at(i), delta);
+			color->at(i) = glm::mix(colorBegin->at(i), colorEnd->at(i), msElapsed/1000);
 		}
+        
+        //std::cout << "Color: " << color->at(0).r << " " << color->at(0).g << " " << color->at(0).b << std::endl;
 
 		PrepareUploadData();
         UploadToGPU();
+        Render();
 	}
 }
 
 void particle_system::Render()
 {
-    
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    particlesShader->Bind();
+    glDrawElements(GL_TRIANGLES, 6000, GL_UNSIGNED_INT, 0);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }

@@ -393,3 +393,4 @@ libs/
 *.vcxproj
 *.vcxproj.filters
 *.sln
+.DS_Store
