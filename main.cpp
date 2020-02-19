@@ -38,11 +38,12 @@ int main(int argc, char* argv[])
     data.velocity = glm::vec2(0.1f, 0.1f);
     data.colorBegin = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
     data.colorEnd = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-    data.totalLife = 1.0f;
-    data.emissionRate = 1;
+    data.totalLife = 5.0f;
+    data.emissionRate = 3;
    
     particle_system particleSystem(data);
     particleSystem.Init();
+    particleSystem.looping = true;
     particleSystem.Emit();
     
 //    GLint indices[] = {

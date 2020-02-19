@@ -66,12 +66,25 @@ void particle_system::Init()
     particlesShader = std::make_unique<Shader>("Shaders/vertex.vs", "Shaders/fragment.fs");
     
     glEnable(GL_BLEND);
+    glEnable(GL_DEPTH);
 
 	std::cout << "Particle system initialized" << std::endl;
 }
 
 void particle_system::Emit()
 {
+    if (!looping) {
+        size_t firstInactivePIndex = lastActiveParticle + 1;
+        position->at(firstInactivePIndex) = particleAttr.position;
+        velocity->at(firstInactivePIndex) = particleAttr.velocity;
+        colorBegin->at(firstInactivePIndex) = particleAttr.colorBegin;
+        colorEnd->at(firstInactivePIndex) = particleAttr.colorEnd;
+        totalLife->at(firstInactivePIndex) = particleAttr.totalLife;
+        lastActiveParticle++;
+        
+        std::cout << "Particle @ index " << lastActiveParticle << " created" << std::endl;
+    }
+    
     emitting = true;
 }
 
@@ -85,6 +98,9 @@ void particle_system::Destroy(const int index)
     if (lastActiveParticle > 0) {
         SwapData(index, lastActiveParticle);
         std::cout << "Particle destroy: Swapping particle @ " << index << " with " << lastActiveParticle << std::endl;
+    }
+    else {
+        std::cout << "Destroy last particle" << std::endl;
     }
     
     lastActiveParticle--;
@@ -103,44 +119,32 @@ void particle_system::SwapData(const int a, const int b)
 void particle_system::PrepareUploadData()
 {
 	if (lastActiveParticle >= 0) {
-		float quadVertices[] = {
-            0.5f,  0.5f, 0.0f,
-            0.5f, -0.5f, 0.0f,
-            -0.5f, -0.5f, 0.0f,
-            -0.5f,  0.5f, 0.0f
-		};
-
-		int totalPositionFloats = vertexComponents * vertsPerQuad;
-
-		size_t dataIndex = 0;
+        compiledData->clear();
+        int compiledDataOffset = (vertexComponents + colorComponents) * vertsPerQuad;
+        std::vector<float>::iterator dataIndex = compiledData->begin();
 		for (int i = 0; i <= lastActiveParticle; i++) {
-			for (int j = 0; j < totalPositionFloats; j++) {
-				compiledData->at(dataIndex) = quadVertices[j];
-				dataIndex++;
-
-				if ((j + 1) % 3 == 0) {
-					compiledData->at(dataIndex) = color->at(i).r;
-					compiledData->at(dataIndex + 1) = color->at(i).g;
-					compiledData->at(dataIndex + 2) = color->at(i).b;
-					compiledData->at(dataIndex + 3) = color->at(i).a;
-					dataIndex += 4;
-				}
-			}
-		} // FOR END
-	} // IF END
-    
-//    int particleSize = vertexComponents * vertsPerQuad + colorComponents * vertsPerQuad;
-//    int totalDataSize = particleSize * totalParticles;
+            float quadVertices[28] = {
+                (*position)[i].x + 0.5f, (*position)[i].y + 0.5f, 0.0f, (*color)[i].r, (*color)[i].g, (*color)[i].b, (*color)[i].a,
+                (*position)[i].x + 0.5f, (*position)[i].y - 0.5f, 0.0f, (*color)[i].r, (*color)[i].g, (*color)[i].b, (*color)[i].a,
+                (*position)[i].x - 0.5f, (*position)[i].y - 0.5f, 0.0f, (*color)[i].r, (*color)[i].g, (*color)[i].b, (*color)[i].a,
+                (*position)[i].x - 0.5f, (*position)[i].y + 0.5f, 0.0f, (*color)[i].r, (*color)[i].g, (*color)[i].b, (*color)[i].a,
+            };
+            if(dataIndex >= compiledData->end()) {
+                compiledData->insert(dataIndex, &quadVertices[0], &quadVertices[0] + (sizeof(quadVertices)/sizeof(float)));
+                std::advance(dataIndex, compiledDataOffset);
+            }
+		}
+        
+//        for(auto iterator = compiledData->begin(); iterator!=compiledData->end(); std::advance(iterator, 1)) {
+//            std::cout << *iterator << " ";
 //
-//    std::cout << "================DATA BEGIN================" << std::endl;
-//    for(int i = 0; i < totalDataSize; i++) {
-//        std::cout << compiledData->at(i) << " ";
-//
-//        if((i+1) % 7 == 0) {
-//            std::cout << std::endl;
+//            if(((iterator-compiledData->begin())+1)%7==0) {
+//                std::cout << std::endl;
+//            }
 //        }
-//    }
-//    std::cout << "================DATA END================" << std::endl;
+//        
+//        std::cout << "========================================================================" << std::endl;
+	}
 }
 
 void particle_system::UploadToGPU()
@@ -160,9 +164,26 @@ void particle_system::Update(timestep ts)
     
     msElapsed += ts.GetMilliseconds();
     
+    // Particle state update
+    if (lastActiveParticle >= 0) {
+        for (int i = 0; i <= lastActiveParticle; i++) {
+            float remainingLife = totalLife->at(i);
+            if (remainingLife <= 0.0f) {
+                Destroy(i);
+                continue;
+            }
+
+            totalLife->at(i) -= delta;
+            position->at(i) += velocity->at(i) * delta;
+
+            // Lerp begin & end colors based on remaining life
+            color->at(i) = glm::mix(colorEnd->at(i), colorBegin->at(i), remainingLife/particleAttr.totalLife);
+        }
+    }
+    
     // Timed particle emission
     if(lastActiveParticle + 1 < totalParticles) {
-        if(msElapsed >= (1000 / particleAttr.emissionRate)) {
+        if(msElapsed >= (1000 / particleAttr.emissionRate) && looping) {
             size_t firstInactivePIndex = lastActiveParticle + 1;
             position->at(firstInactivePIndex) = particleAttr.position;
             velocity->at(firstInactivePIndex) = particleAttr.velocity;
@@ -179,34 +200,14 @@ void particle_system::Update(timestep ts)
         std::cout << "Limit reached! Cannot add more particles" << std::endl;
     }
     
-    // Particle state update
-	if (lastActiveParticle >= 0) {
-		for (int i = 0; i <= lastActiveParticle; i++) {
-			float remainingLife = totalLife->at(i);
-			if (remainingLife <= 0.0f) {
-				Destroy(i);
-				continue;
-			}
-
-			totalLife->at(i) -= delta;
-			position->at(i) += velocity->at(i) * delta;
-
-			// Lerp begin & end colors based on remaining life
-			color->at(i) = glm::mix(colorBegin->at(i), colorEnd->at(i), msElapsed/1000);
-		}
-        
-        //std::cout << "Color: " << color->at(0).r << " " << color->at(0).g << " " << color->at(0).b << std::endl;
-
-		PrepareUploadData();
-        UploadToGPU();
-        Render();
-	}
+    PrepareUploadData();
+    UploadToGPU();
+    Render();
 }
 
 void particle_system::Render()
 {
-    //glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     particlesShader->Bind();
     glDrawElements(GL_TRIANGLES, 6000, GL_UNSIGNED_INT, 0);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }

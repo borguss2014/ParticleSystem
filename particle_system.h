@@ -34,6 +34,7 @@ struct particle_system
     
     double msElapsed = 0;
     bool emitting = false;
+    bool looping = true;
 
 	// PARTICLES
 	std::unique_ptr<std::vector<glm::vec2>> position;
