@@ -51,14 +51,13 @@ struct particle_system
 
 	void Init();
 	void Emit();
+	void Update(timestep ts);
     void Stop();
 	void Destroy(const int index);
 	void SwapData(const int a, const int b);
 
 	void PrepareUploadData();
 	void UploadToGPU();
-
-	void Update(timestep ts);
 	void Render();
 
 	GLuint VAO, VBO, EBO;

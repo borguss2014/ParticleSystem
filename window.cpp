@@ -40,6 +40,7 @@ void window::Init(window_props props)
 
 	glfwMakeContextCurrent(m_Window);
 
+	glfwSwapInterval(0);
 	glfwSetKeyCallback(m_Window, key_callback);
 	glfwSetFramebufferSizeCallback(m_Window, framebuffer_callback);
 	glfwSetWindowPos(m_Window, screenWidth / 2 - props.width / 2, screenHeight / 2 - props.height / 2);
