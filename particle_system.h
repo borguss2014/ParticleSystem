@@ -4,6 +4,8 @@
 #include <memory>
 #include <vector>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <glad/glad.h>
 #include "timestep.h"
 #include "Shader.h"
@@ -14,7 +16,10 @@ struct particle_data
 	glm::vec2 velocity;
 	glm::vec4 colorBegin;
 	glm::vec4 colorEnd;
+	glm::vec3 scaleBegin;
+	glm::vec3 scaleEnd;
     int emissionRate; // Particles per second
+	float emissionFrequency;
 	float totalLife;
 };
 
@@ -29,6 +34,7 @@ struct particle_system
 
 	int vertexComponents = 3;
 	int colorComponents = 4;
+	int scaleComponents = 3;
 	int vertsPerQuad = 4;
     int indicesPerQuad = 6;
     
@@ -41,7 +47,10 @@ struct particle_system
 	std::unique_ptr<std::vector<glm::vec2>> velocity;
 	std::unique_ptr<std::vector<glm::vec4>> colorBegin;
 	std::unique_ptr<std::vector<glm::vec4>> colorEnd;
+	std::unique_ptr<std::vector<glm::vec3>> scaleBegin;
+	std::unique_ptr<std::vector<glm::vec3>> scaleEnd;
 	std::unique_ptr<std::vector<glm::vec4>> color;
+	std::unique_ptr<std::vector<glm::vec3>> scale;
 	std::unique_ptr<std::vector<float>> totalLife;
 
 	std::unique_ptr<std::vector<float>> compiledData;
