@@ -28,7 +28,7 @@ particle_system::particle_system(const particle_data& pAttributes, int maxPartic
     scale->resize(totalParticles);
 	totalLife->resize(totalParticles);
     
-    int particleSize = (vertexComponents + colorComponents + scaleComponents) * vertsPerQuad;
+    int particleSize = (vertexComponents + colorComponents) * vertsPerQuad;
     int totalDataSize = particleSize * totalParticles;
 	compiledData = std::make_unique<std::vector<float>>();
     compiledData->resize(totalDataSize);
@@ -42,7 +42,7 @@ void particle_system::Init()
     int colorAttribIndex = 1;
     int scaleAttribIndex = 2;
     
-    int pointAttr = vertexComponents + colorComponents + scaleComponents;
+    int pointAttr = vertexComponents + colorComponents;
 	int totalDataSize = indicesPerQuad * totalParticles;
     
     int quadIndex = 0;
@@ -74,9 +74,6 @@ void particle_system::Init()
 
 	glVertexAttribPointer(colorAttribIndex, colorComponents, GL_FLOAT, GL_FALSE, pointAttr * sizeof(GLfloat), (void*)(vertexComponents * sizeof(GLfloat)));
 	glEnableVertexAttribArray(colorAttribIndex);
-
-    glVertexAttribPointer(scaleAttribIndex, scaleComponents, GL_FLOAT, GL_FALSE, pointAttr * sizeof(GLfloat), (void*)((vertexComponents + colorComponents) * sizeof(GLfloat)));
-    glEnableVertexAttribArray(scaleAttribIndex);
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -127,20 +124,23 @@ void particle_system::Update(timestep ts)
             }
 
             (*totalLife)[i] -= delta;
+
+            // TODO: Random initial velocity generation is affecting quad size
             (*position)[i] += (*velocity)[i] * delta;
 
             // Lerp begin & end colors based on remaining life
-            (*color)[i] = glm::mix((*colorEnd)[i], (*colorBegin)[i], remainingLife / particleAttr.totalLife);
-            (*scale)[i] = glm::mix((*scaleBegin)[i], (*scaleEnd)[i], remainingLife / particleAttr.totalLife);
+            (*color)[i] = glm::mix((*colorEnd)[i], (*colorBegin)[i], (*totalLife)[i] / particleAttr.totalLife);
+            (*scale)[i] = glm::mix((*scaleBegin)[i], (*scaleEnd)[i], (*totalLife)[i] / particleAttr.totalLife);
         }
     }
 
     // Timed particle emission
     if (lastActiveParticle + 1 < totalParticles) {
         if (msElapsed >= ((particleAttr.emissionFrequency * 1000) / particleAttr.emissionRate) && looping) {
+            // TODO: Allow randomized initial properties
             size_t firstInactivePIndex = (size_t)lastActiveParticle + 1;
             (*position)[firstInactivePIndex] = particleAttr.position;
-            (*velocity)[firstInactivePIndex] = glm::vec2(distribution(generator), distribution(generator));
+            (*velocity)[firstInactivePIndex] = glm::vec2(distribution(generator) * particleAttr.velocity.x, distribution(generator) * particleAttr.velocity.y);
             (*colorBegin)[firstInactivePIndex] = particleAttr.colorBegin;
             (*colorEnd)[firstInactivePIndex] = particleAttr.colorEnd;
             (*scaleBegin)[firstInactivePIndex] = particleAttr.scaleBegin;
@@ -149,7 +149,7 @@ void particle_system::Update(timestep ts)
             lastActiveParticle++;
 
             msElapsed = 0;
-            std::cout << "Particle @ index " << lastActiveParticle << " created" << std::endl;
+           // std::cout << "Particle @ index " << lastActiveParticle << " created" << std::endl;
         }
     }
     else {
@@ -170,10 +170,10 @@ void particle_system::Destroy(const int index)
 {
     if (lastActiveParticle > 0) {
         SwapData(index, lastActiveParticle);
-        std::cout << "Particle destroy: Swapping particle @ " << index << " with " << lastActiveParticle << std::endl;
+        //std::cout << "Particle destroy: Swapping particle @ " << index << " with " << lastActiveParticle << std::endl;
     }
     else {
-        std::cout << "Destroy last particle" << std::endl;
+        //std::cout << "Destroy last particle" << std::endl;
     }
     
     lastActiveParticle--;
@@ -198,49 +198,37 @@ void particle_system::PrepareUploadData()
         int dataIndex = 0;
 		for (int i = 0; i <= lastActiveParticle; i++) {
             // TODO: A lot of repeated data in here. Could bundle it better so less data is uploaded each frame
-            (*compiledData)[dataIndex++] = (*position)[i].x + 0.5f;
-            (*compiledData)[dataIndex++] = (*position)[i].y + 0.5f;
+            (*compiledData)[dataIndex++] = (*position)[i].x + 0.5f * (*scale)[i].x;
+            (*compiledData)[dataIndex++] = (*position)[i].y + 0.5f * (*scale)[i].y;
             (*compiledData)[dataIndex++] = 0.0f;
             (*compiledData)[dataIndex++] = (*color)[i].r;
             (*compiledData)[dataIndex++] = (*color)[i].g;
             (*compiledData)[dataIndex++] = (*color)[i].b;
             (*compiledData)[dataIndex++] = (*color)[i].a;
-            (*compiledData)[dataIndex++] = (*scale)[i].x;
-            (*compiledData)[dataIndex++] = (*scale)[i].y;
-            (*compiledData)[dataIndex++] = 0.0f;
 
-            (*compiledData)[dataIndex++] = (*position)[i].x + 0.5f;
-            (*compiledData)[dataIndex++] = (*position)[i].y - 0.5f;
+            (*compiledData)[dataIndex++] = (*position)[i].x + 0.5f * (*scale)[i].x;
+            (*compiledData)[dataIndex++] = (*position)[i].y - 0.5f * (*scale)[i].y;
             (*compiledData)[dataIndex++] = 0.0f;
             (*compiledData)[dataIndex++] = (*color)[i].r;
             (*compiledData)[dataIndex++] = (*color)[i].g;
             (*compiledData)[dataIndex++] = (*color)[i].b;
             (*compiledData)[dataIndex++] = (*color)[i].a;
-            (*compiledData)[dataIndex++] = (*scale)[i].x;
-            (*compiledData)[dataIndex++] = (*scale)[i].y;
-            (*compiledData)[dataIndex++] = 0.0f;
 
-            (*compiledData)[dataIndex++] = (*position)[i].x - 0.5f;
-            (*compiledData)[dataIndex++] = (*position)[i].y - 0.5f;
+            (*compiledData)[dataIndex++] = (*position)[i].x - 0.5f * (*scale)[i].x;
+            (*compiledData)[dataIndex++] = (*position)[i].y - 0.5f * (*scale)[i].y;
             (*compiledData)[dataIndex++] = 0.0f;
             (*compiledData)[dataIndex++] = (*color)[i].r;
             (*compiledData)[dataIndex++] = (*color)[i].g;
             (*compiledData)[dataIndex++] = (*color)[i].b;
             (*compiledData)[dataIndex++] = (*color)[i].a;
-            (*compiledData)[dataIndex++] = (*scale)[i].x;
-            (*compiledData)[dataIndex++] = (*scale)[i].y;
-            (*compiledData)[dataIndex++] = 0.0f;
 
-            (*compiledData)[dataIndex++] = (*position)[i].x - 0.5f;
-            (*compiledData)[dataIndex++] = (*position)[i].y + 0.5f;
+            (*compiledData)[dataIndex++] = (*position)[i].x - 0.5f * (*scale)[i].x;
+            (*compiledData)[dataIndex++] = (*position)[i].y + 0.5f * (*scale)[i].y;
             (*compiledData)[dataIndex++] = 0.0f;
             (*compiledData)[dataIndex++] = (*color)[i].r;
             (*compiledData)[dataIndex++] = (*color)[i].g;
             (*compiledData)[dataIndex++] = (*color)[i].b;
             (*compiledData)[dataIndex++] = (*color)[i].a;
-            (*compiledData)[dataIndex++] = (*scale)[i].x;
-            (*compiledData)[dataIndex++] = (*scale)[i].y;
-            (*compiledData)[dataIndex++] = 0.0f;
 		}
         
 

@@ -35,14 +35,14 @@ int main(int argc, char* argv[])
     
     particle_data data;
     data.position = glm::vec2(0.0f, 0.0f);
-    data.velocity = glm::vec2(0.1f, 0.1f);
+    data.velocity = glm::vec2(2.0f, 2.0f);
     data.colorBegin = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
     data.colorEnd = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-    data.scaleBegin = glm::vec3(1.0f, 1.0f, 0.0f);
-    data.scaleEnd = glm::vec3(4.0f, 4.0f, 0.0f);
-    data.totalLife = 4;
-    data.emissionRate = 100;
-    data.emissionFrequency = 2.0f;
+    data.scaleBegin = glm::vec3(0.0f, 0.0f, 0.0f);
+    data.scaleEnd = glm::vec3(0.5f, 0.5f, 0.0f);
+    data.totalLife = 2;
+    data.emissionRate = 200;
+    data.emissionFrequency = 1.0f;
    
     particle_system particleSystem(data);
     particleSystem.Init();

@@ -34,7 +34,6 @@ struct particle_system
 
 	int vertexComponents = 3;
 	int colorComponents = 4;
-	int scaleComponents = 3;
 	int vertsPerQuad = 4;
     int indicesPerQuad = 6;
     
