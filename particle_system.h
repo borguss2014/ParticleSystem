@@ -12,15 +12,25 @@
 
 struct particle_data
 {
-	glm::vec2 position;
-	glm::vec2 velocity;
-	glm::vec4 colorBegin;
-	glm::vec4 colorEnd;
-	glm::vec3 scaleBegin;
-	glm::vec3 scaleEnd;
-    int emissionRate; // Particles per second
-	float emissionFrequency;
-	float totalLife;
+	glm::vec2 position = glm::vec2(0.0f, 0.0f);
+	glm::vec2 velocity = glm::vec2(0.0f, 0.0f);
+	glm::vec4 colorBegin = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+	glm::vec4 colorEnd = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+	glm::vec3 scaleBegin = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 scaleEnd = glm::vec3(0.0f, 0.0f, 0.0f);
+    int emissionRate = 0; // Particles per second
+	float emissionFrequency = 0;
+	float totalLife = 0;
+};
+
+enum struct particle_attributes
+{
+	position = 0, 
+	velocity,
+	colorBegin, colorEnd,
+	scaleBegin, scaleEnd,
+	emissionRate, emissionFrequency,
+	totalLife
 };
 
 struct particle_system

@@ -1,3 +1,5 @@
+#define GLFW_INCLUDE_NONE
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -9,6 +11,7 @@
 #include "window.h"
 #include "Shader.h"
 #include "particle_system.h"
+
 
 float lastTime = 0;
 
@@ -27,26 +30,25 @@ int main(int argc, char* argv[])
 	window window;
 	window.Init(windowProps);
     
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
     
     particle_data data;
     data.position = glm::vec2(0.0f, 0.0f);
-    data.velocity = glm::vec2(2.0f, 2.0f);
+    data.velocity = glm::vec2(1.0f, 1.0f);
     data.colorBegin = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
     data.colorEnd = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
     data.scaleBegin = glm::vec3(0.0f, 0.0f, 0.0f);
-    data.scaleEnd = glm::vec3(0.5f, 0.5f, 0.0f);
-    data.totalLife = 2;
+    data.scaleEnd = glm::vec3(2.5f, 2.5f, 0.0f);
+    data.totalLife = 3;
     data.emissionRate = 200;
     data.emissionFrequency = 1.0f;
    
     particle_system particleSystem(data);
     particleSystem.Init();
-    particleSystem.looping = true;
+    particleSystem.looping = false;
     particleSystem.Emit();
 
 	while (!glfwWindowShouldClose(window.m_Window))

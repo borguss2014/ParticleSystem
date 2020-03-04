@@ -124,8 +124,6 @@ void particle_system::Update(timestep ts)
             }
 
             (*totalLife)[i] -= delta;
-
-            // TODO: Random initial velocity generation is affecting quad size
             (*position)[i] += (*velocity)[i] * delta;
 
             // Lerp begin & end colors based on remaining life
@@ -198,6 +196,7 @@ void particle_system::PrepareUploadData()
         int dataIndex = 0;
 		for (int i = 0; i <= lastActiveParticle; i++) {
             // TODO: A lot of repeated data in here. Could bundle it better so less data is uploaded each frame
+            // Research dynamic batching
             (*compiledData)[dataIndex++] = (*position)[i].x + 0.5f * (*scale)[i].x;
             (*compiledData)[dataIndex++] = (*position)[i].y + 0.5f * (*scale)[i].y;
             (*compiledData)[dataIndex++] = 0.0f;
@@ -230,17 +229,6 @@ void particle_system::PrepareUploadData()
             (*compiledData)[dataIndex++] = (*color)[i].b;
             (*compiledData)[dataIndex++] = (*color)[i].a;
 		}
-        
-
-//        for(auto iterator = compiledData->begin(); iterator!=compiledData->end(); std::advance(iterator, 1)) {
-//            std::cout << *iterator << " ";
-//
-//            if(((iterator-compiledData->begin())+1)%7==0) {
-//                std::cout << std::endl;
-//            }
-//        }
-//        
-//        std::cout << "========================================================================" << std::endl;
 	}
 }
 
