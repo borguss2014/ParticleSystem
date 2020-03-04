@@ -5,9 +5,12 @@
 std::default_random_engine generator;
 std::uniform_real_distribution<double> distribution(-10.0, 10.0);
 
-particle_system::particle_system(const particle_data& pAttributes, int maxParticles)
-	: totalParticles(maxParticles), particleAttr(pAttributes)
+particle_system::particle_system(int maxParticles)
+	: totalParticles(maxParticles)
 {
+    particle_data initData;
+    particleData = initData;
+    
 	position = std::make_unique<std::vector<glm::vec2>>();
 	velocity = std::make_unique<std::vector<glm::vec2>>();
 	colorBegin = std::make_unique<std::vector<glm::vec4>>();
@@ -40,7 +43,6 @@ void particle_system::Init()
 {
     int vertexAttribIndex = 0;
     int colorAttribIndex = 1;
-    int scaleAttribIndex = 2;
     
     int pointAttr = vertexComponents + colorComponents;
 	int totalDataSize = indicesPerQuad * totalParticles;
@@ -91,13 +93,13 @@ void particle_system::Emit()
 {
     if (!looping) {
         int firstInactivePIndex = lastActiveParticle + 1;
-        (*position)[firstInactivePIndex] = particleAttr.position;
-        (*velocity)[firstInactivePIndex] = particleAttr.velocity;
-        (*colorBegin)[firstInactivePIndex] = particleAttr.colorBegin;
-        (*colorEnd)[firstInactivePIndex] = particleAttr.colorEnd;
-        (*scaleBegin)[firstInactivePIndex] = particleAttr.scaleBegin;
-        (*scaleEnd)[firstInactivePIndex] = particleAttr.scaleEnd;
-        (*totalLife)[firstInactivePIndex] = particleAttr.totalLife;
+        (*position)[firstInactivePIndex] = particleData.position;
+        (*velocity)[firstInactivePIndex] = particleData.velocity;
+        (*colorBegin)[firstInactivePIndex] = particleData.colorBegin;
+        (*colorEnd)[firstInactivePIndex] = particleData.colorEnd;
+        (*scaleBegin)[firstInactivePIndex] = particleData.scaleBegin;
+        (*scaleEnd)[firstInactivePIndex] = particleData.scaleEnd;
+        (*totalLife)[firstInactivePIndex] = particleData.totalLife;
         lastActiveParticle++;
         
         std::cout << "Particle @ index " << lastActiveParticle << " created" << std::endl;
@@ -127,23 +129,23 @@ void particle_system::Update(timestep ts)
             (*position)[i] += (*velocity)[i] * delta;
 
             // Lerp begin & end colors based on remaining life
-            (*color)[i] = glm::mix((*colorEnd)[i], (*colorBegin)[i], (*totalLife)[i] / particleAttr.totalLife);
-            (*scale)[i] = glm::mix((*scaleBegin)[i], (*scaleEnd)[i], (*totalLife)[i] / particleAttr.totalLife);
+            (*color)[i] = glm::mix((*colorEnd)[i], (*colorBegin)[i], (*totalLife)[i] / particleData.totalLife);
+            (*scale)[i] = glm::mix((*scaleBegin)[i], (*scaleEnd)[i], (*totalLife)[i] / particleData.totalLife);
         }
     }
 
     // Timed particle emission
     if (lastActiveParticle + 1 < totalParticles) {
-        if (msElapsed >= ((particleAttr.emissionFrequency * 1000) / particleAttr.emissionRate) && looping) {
+        if (msElapsed >= ((particleData.emissionFrequency * 1000) / particleData.emissionRate) && looping) {
             // TODO: Allow randomized initial properties
             size_t firstInactivePIndex = (size_t)lastActiveParticle + 1;
-            (*position)[firstInactivePIndex] = particleAttr.position;
-            (*velocity)[firstInactivePIndex] = glm::vec2(distribution(generator) * particleAttr.velocity.x, distribution(generator) * particleAttr.velocity.y);
-            (*colorBegin)[firstInactivePIndex] = particleAttr.colorBegin;
-            (*colorEnd)[firstInactivePIndex] = particleAttr.colorEnd;
-            (*scaleBegin)[firstInactivePIndex] = particleAttr.scaleBegin;
-            (*scaleEnd)[firstInactivePIndex] = particleAttr.scaleEnd;
-            (*totalLife)[firstInactivePIndex] = particleAttr.totalLife;
+            (*position)[firstInactivePIndex] = particleData.position;
+            (*velocity)[firstInactivePIndex] = glm::vec2(distribution(generator) * particleData.velocity.x, distribution(generator) * particleData.velocity.y);
+            (*colorBegin)[firstInactivePIndex] = particleData.colorBegin;
+            (*colorEnd)[firstInactivePIndex] = particleData.colorEnd;
+            (*scaleBegin)[firstInactivePIndex] = particleData.scaleBegin;
+            (*scaleEnd)[firstInactivePIndex] = particleData.scaleEnd;
+            (*totalLife)[firstInactivePIndex] = particleData.totalLife;
             lastActiveParticle++;
 
             msElapsed = 0;

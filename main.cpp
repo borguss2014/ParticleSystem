@@ -35,20 +35,31 @@ int main(int argc, char* argv[])
         return -1;
     }
     
-    particle_data data;
-    data.position = glm::vec2(0.0f, 0.0f);
-    data.velocity = glm::vec2(1.0f, 1.0f);
-    data.colorBegin = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-    data.colorEnd = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-    data.scaleBegin = glm::vec3(0.0f, 0.0f, 0.0f);
-    data.scaleEnd = glm::vec3(2.5f, 2.5f, 0.0f);
-    data.totalLife = 3;
-    data.emissionRate = 200;
-    data.emissionFrequency = 1.0f;
+//    particle_data data;
+//    data.position = glm::vec2(0.0f, 0.0f);
+//    data.velocity = glm::vec2(1.0f, 1.0f);
+//    data.colorBegin = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+//    data.colorEnd = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+//    data.scaleBegin = glm::vec3(0.0f, 0.0f, 0.0f);
+//    data.scaleEnd = glm::vec3(4.5f, 4.5f, 0.0f);
+//    data.totalLife = 3;
+//    data.emissionRate = 10;
+//    data.emissionFrequency = 1.0f;
    
-    particle_system particleSystem(data);
+    particle_system particleSystem;
     particleSystem.Init();
-    particleSystem.looping = false;
+    
+    particleSystem.SetAttribute(particle_attribute::POSITION, glm::vec2(0.0f, 0.0f));
+    particleSystem.SetAttribute(particle_attribute::VELOCITY, glm::vec2(1.0f, 1.0f));
+    particleSystem.SetAttribute(particle_attribute::COLOR_BEGIN, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+    particleSystem.SetAttribute(particle_attribute::COLOR_END, glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
+    particleSystem.SetAttribute(particle_attribute::SCALE_BEGIN, glm::vec3(0.0f, 0.0f, 0.0f));
+    particleSystem.SetAttribute(particle_attribute::SCALE_END, glm::vec3(4.5f, 4.5f, 0.0f));
+    particleSystem.SetAttribute(particle_attribute::TOTAL_LIFE, 3);
+    particleSystem.SetAttribute(particle_attribute::EMISSION_RATE, 10);
+    particleSystem.SetAttribute(particle_attribute::EMISSION_FREQUENCY, 1.0f);
+    
+    particleSystem.looping = true;
     particleSystem.Emit();
 
 	while (!glfwWindowShouldClose(window.m_Window))

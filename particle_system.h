@@ -23,19 +23,19 @@ struct particle_data
 	float totalLife = 0;
 };
 
-enum struct particle_attributes
+enum struct particle_attribute
 {
-	position = 0, 
-	velocity,
-	colorBegin, colorEnd,
-	scaleBegin, scaleEnd,
-	emissionRate, emissionFrequency,
-	totalLife
+	POSITION = 0,
+	VELOCITY,
+	COLOR_BEGIN, COLOR_END,
+	SCALE_BEGIN, SCALE_END,
+	EMISSION_RATE, EMISSION_FREQUENCY,
+	TOTAL_LIFE
 };
 
 struct particle_system
 {
-	particle_system(const particle_data& pAttributes, int maxParticles = 1000);
+	particle_system(int maxParticles = 1000);
 
     // PARTICLE PROPERTIES
     int particlesToEmit = 0;
@@ -65,10 +65,45 @@ struct particle_system
 	std::unique_ptr<std::vector<float>> compiledData;
     std::unique_ptr<std::vector<int>> compiledDataIndex;
     
-    particle_data particleAttr;
+    particle_data particleData;
 
+    // FUNCTIONS
 	void Init();
 	void Emit();
+    
+    template <typename T>
+    void SetAttribute(particle_attribute attrib, const T value) {
+        switch(attrib) {
+            case particle_attribute::POSITION:
+                particleData.position = (glm::vec2)value;
+                break;
+            case particle_attribute::VELOCITY:
+                particleData.velocity = (glm::vec2)value;
+                break;
+            case particle_attribute::COLOR_BEGIN:
+                particleData.colorBegin = (glm::vec4)value;
+                break;
+            case particle_attribute::COLOR_END:
+                particleData.colorEnd = (glm::vec4)value;
+                break;
+            case particle_attribute::SCALE_BEGIN:
+                particleData.scaleBegin = (glm::vec3)value;
+                break;
+            case particle_attribute::SCALE_END:
+                particleData.scaleEnd = (glm::vec3)value;
+                break;
+            case particle_attribute::EMISSION_RATE:
+                particleData.emissionRate = (int)value;
+                break;
+            case particle_attribute::EMISSION_FREQUENCY:
+                particleData.emissionFrequency = (int)value;
+                break;
+            case particle_attribute::TOTAL_LIFE:
+                particleData.totalLife = (float)value;
+                break;
+        }
+    }
+    
 	void Update(timestep ts);
     void Stop();
 	void Destroy(const int index);
@@ -78,6 +113,7 @@ struct particle_system
 	void UploadToGPU();
 	void Render();
 
+    // OPENGL RELATED
 	GLuint VAO, VBO, EBO;
     std::unique_ptr<Shader> particlesShader;
 };
