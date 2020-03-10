@@ -71,39 +71,6 @@ struct particle_system
 	void Init();
 	void Emit();
     
-    template <typename T>
-    void SetAttribute(particle_attribute attrib, const T value) {
-        switch(attrib) {
-            case particle_attribute::POSITION:
-                particleData.position = (glm::vec2)value;
-                break;
-            case particle_attribute::VELOCITY:
-                particleData.velocity = (glm::vec2)value;
-                break;
-            case particle_attribute::COLOR_BEGIN:
-                particleData.colorBegin = (glm::vec4)value;
-                break;
-            case particle_attribute::COLOR_END:
-                particleData.colorEnd = (glm::vec4)value;
-                break;
-            case particle_attribute::SCALE_BEGIN:
-                particleData.scaleBegin = (glm::vec3)value;
-                break;
-            case particle_attribute::SCALE_END:
-                particleData.scaleEnd = (glm::vec3)value;
-                break;
-            case particle_attribute::EMISSION_RATE:
-                particleData.emissionRate = (int)value;
-                break;
-            case particle_attribute::EMISSION_FREQUENCY:
-                particleData.emissionFrequency = (int)value;
-                break;
-            case particle_attribute::TOTAL_LIFE:
-                particleData.totalLife = (float)value;
-                break;
-        }
-    }
-    
 	void Update(timestep ts);
     void Stop();
 	void Destroy(const int index);
