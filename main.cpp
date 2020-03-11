@@ -1,6 +1,6 @@
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_opengl3.h>
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 
 #include <stdio.h>
 
@@ -86,6 +86,8 @@ int main(int argc, char* argv[])
     particleSystem.Emit();
     
     glm::vec4 myColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    ImVec2 pos = ImVec2(0.0f, 0.0f);
+    ImVec2 size = ImVec2(1000.0f, 1000.0f);
 
 	while (!glfwWindowShouldClose(window.m_Window))
 	{
@@ -95,6 +97,8 @@ int main(int argc, char* argv[])
         ImGui::NewFrame();
 
         ImGui::Begin("Another Window", &openWindow);
+        ImGui::SetWindowPos(pos, ImGuiCond_FirstUseEver);
+        ImGui::SetWindowSize(size, ImGuiCond_FirstUseEver);
         ImGui::Text("Hello from another window!");
         if (ImGui::Button("Close Me")) {
             glfwSetWindowShouldClose(window.m_Window, true);
