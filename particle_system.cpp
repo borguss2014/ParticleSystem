@@ -192,6 +192,11 @@ void particle_system::SwapData(const int a, const int b)
 	std::swap((*totalLife)[a], (*totalLife)[b]);
 }
 
+void particle_system::Randomize()
+{
+
+}
+
 void particle_system::PrepareUploadData()
 {
 	if (lastActiveParticle >= 0) {

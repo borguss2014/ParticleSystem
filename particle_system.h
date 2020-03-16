@@ -67,20 +67,18 @@ struct particle_system
     
     particle_data particleData;
 
-    // FUNCTIONS
 	void Init();
 	void Emit();
-    
 	void Update(timestep ts);
-    void Stop();
-	void Destroy(const int index);
 	void SwapData(const int a, const int b);
+	void Destroy(const int index);
+	void Stop();
+	void Randomize();
 
 	void PrepareUploadData();
 	void UploadToGPU();
 	void Render();
 
-    // OPENGL RELATED
 	GLuint VAO, VBO, EBO;
     std::unique_ptr<Shader> particlesShader;
 };
