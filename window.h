@@ -17,4 +17,6 @@ struct window
 
 	GLFWwindow* m_Window;
     window_props windowProperties;
+
+	static window* s_Instance;
 };

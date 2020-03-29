@@ -1,5 +1,6 @@
 #include "particle_system.h"
 
+#include "window.h"
 #include <random>
 
 std::default_random_engine generator;
@@ -8,7 +9,7 @@ std::uniform_real_distribution<double> distribution(-10.0, 10.0);
 particle_system::particle_system(int maxParticles)
 	: totalParticles(maxParticles)
 {
-    particle_data initData;
+    particle_data initData = {};
     particleData = initData;
     
 	position = std::make_unique<std::vector<glm::vec2>>();
@@ -19,7 +20,8 @@ particle_system::particle_system(int maxParticles)
     scaleBegin = std::make_unique<std::vector<glm::vec3>>();
     scaleEnd = std::make_unique<std::vector<glm::vec3>>();
     scale = std::make_unique<std::vector<glm::vec3>>();
-	totalLife = std::make_unique<std::vector<float>>();
+	currentLife = std::make_unique<std::vector<float>>();
+    totalLife = std::make_unique<std::vector<float>>();
 
 	position->resize(totalParticles);
 	velocity->resize(totalParticles);
@@ -29,6 +31,7 @@ particle_system::particle_system(int maxParticles)
     scaleBegin->resize(totalParticles);
     scaleEnd->resize(totalParticles);
     scale->resize(totalParticles);
+    currentLife->resize(totalParticles);
 	totalLife->resize(totalParticles);
     
     int particleSize = (vertexComponents + colorComponents) * vertsPerQuad;
@@ -94,11 +97,12 @@ void particle_system::Emit()
     if (!looping) {
         int firstInactivePIndex = lastActiveParticle + 1;
         (*position)[firstInactivePIndex] = particleData.position;
-        (*velocity)[firstInactivePIndex] = particleData.velocity;
+        (*velocity)[firstInactivePIndex] = glm::vec2(distribution(generator) * particleData.speedX, distribution(generator) * particleData.speedY);
         (*colorBegin)[firstInactivePIndex] = particleData.colorBegin;
         (*colorEnd)[firstInactivePIndex] = particleData.colorEnd;
         (*scaleBegin)[firstInactivePIndex] = particleData.scaleBegin;
         (*scaleEnd)[firstInactivePIndex] = particleData.scaleEnd;
+        (*currentLife)[firstInactivePIndex] = particleData.totalLife;
         (*totalLife)[firstInactivePIndex] = particleData.totalLife;
         lastActiveParticle++;
         
@@ -110,50 +114,52 @@ void particle_system::Emit()
 
 void particle_system::Update(timestep ts)
 {
-    if (!emitting) {
-        return;
-    }
-
     float delta = ts.GetSeconds();
     msElapsed += ts.GetMilliseconds();
 
     // Particle state update
-    if (lastActiveParticle >= 0) {
-        for (int i = 0; i <= lastActiveParticle; i++) {
-            float remainingLife = (*totalLife)[i];
-            if (remainingLife <= 0.0f) {
-                Destroy(i);
-            }
-
-            (*totalLife)[i] -= delta;
-            (*position)[i] += (*velocity)[i] * delta;
-
-            // Lerp begin & end colors based on remaining life
-            (*color)[i] = glm::mix((*colorEnd)[i], (*colorBegin)[i], (*totalLife)[i] / particleData.totalLife);
-            (*scale)[i] = glm::mix((*scaleBegin)[i], (*scaleEnd)[i], (*totalLife)[i] / particleData.totalLife);
+    for (int i = 0; i <= lastActiveParticle; i++) {
+        float remainingLife = (*currentLife)[i];
+        if (remainingLife <= 0.0f) {
+            Destroy(i);
         }
+
+        (*currentLife)[i] -= delta;
+        (*position)[i] += (*velocity)[i] * delta;
+
+        // Lerp begin & end colors based on remaining life
+        (*color)[i] = glm::mix((*colorEnd)[i], (*colorBegin)[i], (*currentLife)[i] / (*totalLife)[i]);
+        (*scale)[i] = glm::mix((*scaleBegin)[i], (*scaleEnd)[i], (*currentLife)[i] / (*totalLife)[i]);
     }
 
     // Timed particle emission
-    if (lastActiveParticle + 1 < totalParticles) {
-        if (msElapsed >= ((particleData.emissionFrequency * 1000) / particleData.emissionRate) && looping) {
-            // TODO: Allow randomized initial properties
-            size_t firstInactivePIndex = (size_t)lastActiveParticle + 1;
-            (*position)[firstInactivePIndex] = particleData.position;
-            (*velocity)[firstInactivePIndex] = glm::vec2(distribution(generator) * particleData.velocity.x, distribution(generator) * particleData.velocity.y);
-            (*colorBegin)[firstInactivePIndex] = particleData.colorBegin;
-            (*colorEnd)[firstInactivePIndex] = particleData.colorEnd;
-            (*scaleBegin)[firstInactivePIndex] = particleData.scaleBegin;
-            (*scaleEnd)[firstInactivePIndex] = particleData.scaleEnd;
-            (*totalLife)[firstInactivePIndex] = particleData.totalLife;
-            lastActiveParticle++;
+    if (emitting) {
+        if (lastActiveParticle + 1 < totalParticles) {
+            if (msElapsed >= ((particleData.emissionFrequency * 1000) / particleData.emitQuantity) && looping) {
 
-            msElapsed = 0;
-           // std::cout << "Particle @ index " << lastActiveParticle << " created" << std::endl;
+                if (!(randomOptions & 0x00)) {
+                    RandomizeParticleAttributes();
+                }
+
+                // TODO: Allow randomized initial properties
+                size_t firstInactivePIndex = (size_t)lastActiveParticle + 1;
+                (*position)[firstInactivePIndex] = particleData.position;
+                (*velocity)[firstInactivePIndex] = glm::vec2(distribution(generator) * particleData.speedX, distribution(generator) * particleData.speedY);
+                (*colorBegin)[firstInactivePIndex] = particleData.colorBegin;
+                (*colorEnd)[firstInactivePIndex] = particleData.colorEnd;
+                (*scaleBegin)[firstInactivePIndex] = particleData.scaleBegin;
+                (*scaleEnd)[firstInactivePIndex] = particleData.scaleEnd;
+                (*currentLife)[firstInactivePIndex] = particleData.totalLife;
+                (*totalLife)[firstInactivePIndex] = particleData.totalLife;
+                lastActiveParticle++;
+
+                msElapsed = 0;
+                // std::cout << "Particle @ index " << lastActiveParticle << " created" << std::endl;
+            }
         }
-    }
-    else {
-        std::cout << "Limit reached! Cannot add more particles" << std::endl;
+        else {
+            std::cout << "Limit reached! Cannot add more particles" << std::endl;
+        }
     }
 
     PrepareUploadData();
@@ -189,12 +195,39 @@ void particle_system::SwapData(const int a, const int b)
     std::swap((*scaleBegin)[a], (*scaleBegin)[b]);
     std::swap((*scaleEnd)[a], (*scaleEnd)[b]);
     std::swap((*scale)[a], (*scale)[b]);
+    std::swap((*currentLife)[a], (*currentLife)[b]);
 	std::swap((*totalLife)[a], (*totalLife)[b]);
 }
 
-void particle_system::Randomize()
+void particle_system::SetRandom(const particle_attribute attribute, bool enabled)
 {
+    randomOptions = enabled ? randomOptions | attribute : randomOptions & ~attribute;
+}
 
+void particle_system::RandomizeParticleAttributes()
+{
+    if (randomOptions & POSITION) {
+        float wWidth = window::s_Instance->windowProperties.width;
+        float wHeight = window::s_Instance->windowProperties.height;
+
+        // TODO: Positions should be based on screen coordinates
+        std::uniform_real_distribution<double> pos_randX(-80, 80);
+        std::uniform_real_distribution<double> pos_randY(-80, 80);
+        particleData.position.x = pos_randX(generator);
+        particleData.position.y = pos_randY(generator);
+    }
+
+    if (randomOptions & SPEED) {
+        std::uniform_real_distribution<double> speed_randX(1, 5);
+        std::uniform_real_distribution<double> speed_randY(1, 5);
+        particleData.speedX = speed_randX(generator);
+        particleData.speedY = speed_randY(generator);
+    }
+
+    if (randomOptions & TOTAL_LIFE) {
+        std::uniform_real_distribution<double> particleLifeRand(0.1, 10);
+        particleData.totalLife = particleLifeRand(generator);
+    }
 }
 
 void particle_system::PrepareUploadData()
@@ -256,9 +289,12 @@ void particle_system::Render()
     glm::mat4 view = glm::mat4(1.0f);
     glm::mat4 projection = glm::mat4(1.0f);
 
+    float wWidth = window::s_Instance->windowProperties.width;
+    float wHeight = window::s_Instance->windowProperties.height;
+
     model = glm::scale(model, glm::vec3(20.0f, 20.0f, 0.0f));
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, 0.0f));
-    projection = glm::ortho(-1920.0f, 1920.0f, -1080.0f, 1080.0f);
+    projection = glm::ortho(-wWidth, wWidth, -wHeight, wHeight);
 
     int modelLoc = glGetUniformLocation(particlesShader->ID, "model");
     int viewLoc = glGetUniformLocation(particlesShader->ID, "view");

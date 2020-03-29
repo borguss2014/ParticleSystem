@@ -21,6 +21,10 @@ void window::Init(window_props props)
 #endif
     
     windowProperties = props;
+
+	if (s_Instance == nullptr) {
+		s_Instance = this;
+	}
     
 	if (!glfwInit()) {
 		std::cout << "Glfw not initialized" << std::endl;
@@ -32,18 +36,19 @@ void window::Init(window_props props)
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 
 	m_Window = glfwCreateWindow(props.width, props.height, props.title.c_str(), nullptr, nullptr);
-	if (m_Window == nullptr)
-	{
+	if (m_Window == nullptr) {
 		std::cout << "Window couldn't be created" << std::endl;
 		glfwTerminate();
 	}
 
 	glfwMakeContextCurrent(m_Window);
 
+	glViewport(0, 0, props.width, props.height);
 	glfwSwapInterval(0);
 	glfwSetKeyCallback(m_Window, key_callback);
 	glfwSetFramebufferSizeCallback(m_Window, framebuffer_callback);
 	glfwSetWindowPos(m_Window, screenWidth / 2 - props.width / 2, screenHeight / 2 - props.height / 2);
+	glfwSetWindowTitle(m_Window, windowProperties.title.c_str());
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)

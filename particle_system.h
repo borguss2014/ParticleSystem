@@ -12,25 +12,29 @@
 
 struct particle_data
 {
-	glm::vec2 position = glm::vec2(0.0f, 0.0f);
-	glm::vec2 velocity = glm::vec2(0.0f, 0.0f);
-	glm::vec4 colorBegin = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-	glm::vec4 colorEnd = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-	glm::vec3 scaleBegin = glm::vec3(0.0f, 0.0f, 0.0f);
-	glm::vec3 scaleEnd = glm::vec3(0.0f, 0.0f, 0.0f);
-    int emissionRate = 0; // Particles per second
-	float emissionFrequency = 0;
-	float totalLife = 0;
+	glm::vec2 position;
+	glm::vec4 colorBegin;
+	glm::vec4 colorEnd;
+	glm::vec3 scaleBegin;
+	glm::vec3 scaleEnd;
+	float speedX, speedY;
+    int emitQuantity; // Particles per time period
+	float emissionFrequency;
+	float totalLife;
+	float currentLife;
 };
 
-enum struct particle_attribute
+enum particle_attribute
 {
-	POSITION = 0,
-	VELOCITY,
-	COLOR_BEGIN, COLOR_END,
-	SCALE_BEGIN, SCALE_END,
-	EMISSION_RATE, EMISSION_FREQUENCY,
-	TOTAL_LIFE
+	POSITION			= 0x01,
+	SPEED				= 0x02,
+	COLOR_BEGIN			= 0x04,
+	COLOR_END			= 0x08,
+	SCALE_BEGIN			= 0x10,
+	SCALE_END			= 0x20,
+	EMISSION_RATE		= 0x40,
+	EMISSION_FREQUENCY	= 0x80,
+	TOTAL_LIFE			= 0x100
 };
 
 struct particle_system
@@ -42,14 +46,15 @@ struct particle_system
 	int totalParticles;
 	int lastActiveParticle = -1;
 
-	int vertexComponents = 3;
-	int colorComponents = 4;
-	int vertsPerQuad = 4;
-    int indicesPerQuad = 6;
+	const int vertexComponents = 3;
+	const int colorComponents = 4;
+	const int vertsPerQuad = 4;
+    const int indicesPerQuad = 6;
     
     double msElapsed = 0;
     bool emitting = false;
     bool looping = true;
+	unsigned short int randomOptions = 0x00;
 
 	// PARTICLES
 	std::unique_ptr<std::vector<glm::vec2>> position;
@@ -60,6 +65,7 @@ struct particle_system
 	std::unique_ptr<std::vector<glm::vec3>> scaleEnd;
 	std::unique_ptr<std::vector<glm::vec4>> color;
 	std::unique_ptr<std::vector<glm::vec3>> scale;
+	std::unique_ptr<std::vector<float>> currentLife;
 	std::unique_ptr<std::vector<float>> totalLife;
 
 	std::unique_ptr<std::vector<float>> compiledData;
@@ -73,7 +79,9 @@ struct particle_system
 	void SwapData(const int a, const int b);
 	void Destroy(const int index);
 	void Stop();
-	void Randomize();
+
+	void SetRandom(const particle_attribute attribute, bool value);
+	void RandomizeParticleAttributes();
 
 	void PrepareUploadData();
 	void UploadToGPU();
