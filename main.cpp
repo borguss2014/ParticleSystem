@@ -65,12 +65,11 @@ int main(int argc, char* argv[])
    
     particle_data data = {};
     data.position = glm::vec2(0.0f, 0.0f);
-    data.speedX = 1;
-    data.speedY = 1;
+    data.speed = glm::vec2(1, 1);
     data.colorBegin = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
     data.colorEnd = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-    data.scaleBegin = glm::vec3(0.0f, 0.0f, 0.0f);
-    data.scaleEnd = glm::vec3(4.5f, 4.5f, 0.0f);
+    data.scaleBegin = glm::vec2(0.0f, 0.0f);
+    data.scaleEnd = glm::vec2(4.5f, 4.5f);
     data.totalLife = 3;
     data.emitQuantity = 100;
     data.emissionFrequency = 10.0f;
@@ -152,11 +151,12 @@ int main(int argc, char* argv[])
                 }
             }
 
+            ImGui::Separator();
+
             // Randomize section
             {
                 ImGui::TextColored(ImVec4(0.0f, 0.0f, 1.0f, 1.0f), "Randomize"); 
 
-                ImGui::SameLine();
                 checkboxTicked = ImGui::Checkbox("Emission origin", &randomPos);
                 if (checkboxTicked) {
                     if (randomPos) {
@@ -176,8 +176,8 @@ int main(int argc, char* argv[])
                     }
                     else {
                         particleSystem.SetRandom(particle_attribute::SPEED, false);
-                        particleSystem.particleData.speedX = 1;
-                        particleSystem.particleData.speedY = 1;
+                        particleSystem.particleData.speed.x = 1;
+                        particleSystem.particleData.speed.y = 1;
                     }
                 }
 
@@ -192,13 +192,29 @@ int main(int argc, char* argv[])
                         particleSystem.particleData.totalLife = 3;
                     }
                 }
+
+                ImGui::InputFloat2("Emission origin range", (float*)&particleSystem.particleData.position); ImGui::ShowDemoWindow();
+                ImGui::InputFloat2("Speed range", (float*)&particleSystem.particleData.position);
+                ImGui::InputFloat2("Particle life range", (float*)&particleSystem.particleData.position);
             }
+
+            ImGui::Separator();
 
             // System control
             {
                 ImGui::TextColored(ImVec4(0.0f, 0.0f, 1.0f, 1.0f), "System control");
+                ImGui::DragInt("Nr. particles", (int*)&particleSystem.particleData.emitQuantity, 0.2f, 0.0f, 1000.0f, "%.d");
+                ImGui::DragFloat("Timeframe", (float*)&particleSystem.particleData.emissionFrequency, 0.2f, 0.0f, 100.0f, "%.2f", 1.0f);
                 ImGui::InputFloat2("Position", (float*)&particleSystem.particleData.position);
-                ImGui::ColorEdit4("CLEAR COLOR", (float*)&myColor);
+                ImGui::InputFloat2("Speed", (float*)&particleSystem.particleData.speed);
+                ImGui::InputFloat2("Start scale", (float*)&particleSystem.particleData.scaleBegin);
+                ImGui::InputFloat2("End scale", (float*)&particleSystem.particleData.scaleEnd);
+                ImGui::ColorEdit4("Start color", (float*)&particleSystem.particleData.colorBegin);
+                ImGui::ColorEdit4("End color", (float*)&particleSystem.particleData.colorEnd);
+                ImGui::DragFloat("Particle life", (float*)&particleSystem.particleData.totalLife, 0.2f, 0.0f, 100.0f, "%.2f", 1.0f);
+
+                ImGui::Separator();
+                ImGui::ColorEdit4("BACKGROUND COLOR", (float*)&myColor);
 
                 if (ImGui::Button("Close")) {
                     glfwSetWindowShouldClose(window.m_Window, true);

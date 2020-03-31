@@ -15,9 +15,9 @@ struct particle_data
 	glm::vec2 position;
 	glm::vec4 colorBegin;
 	glm::vec4 colorEnd;
-	glm::vec3 scaleBegin;
-	glm::vec3 scaleEnd;
-	float speedX, speedY;
+	glm::vec2 scaleBegin;
+	glm::vec2 scaleEnd;
+	glm::vec2 speed;
     int emitQuantity; // Particles per time period
 	float emissionFrequency;
 	float totalLife;
