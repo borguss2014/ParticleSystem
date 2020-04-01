@@ -3,6 +3,11 @@
 #include "window.h"
 #include <random>
 
+#define VERTEX_COMPONENTS 3
+#define COLOR_COMPONENTS  4
+#define VERTICES_PER_QUAD 4
+#define INDICES_PER_QUAD  6
+
 std::default_random_engine generator;
 std::uniform_real_distribution<double> distribution(-10.0, 10.0);
 
@@ -31,12 +36,13 @@ particle_system::particle_system(int maxParticles)
     currentLife ->resize(totalParticles);
 	totalLife   ->resize(totalParticles);
     
-    int particleSize  = (vertexComponents + colorComponents) * vertsPerQuad;
+    int particleSize  = (VERTEX_COMPONENTS + COLOR_COMPONENTS) * VERTICES_PER_QUAD;
     int totalDataSize = particleSize * totalParticles;
-	compiledData = std::make_unique<std::vector<float>>();
-    compiledData->resize(totalDataSize);
-    compiledDataIndex = std::make_unique<std::vector<int>>();
-    compiledDataIndex->resize(indicesPerQuad * totalParticles);
+
+	compiledData        = std::make_unique<std::vector<float>>();
+    compiledDataIndex   = std::make_unique<std::vector<int>>();
+    compiledData        ->resize(totalDataSize);
+    compiledDataIndex   ->resize(INDICES_PER_QUAD * totalParticles);
 }
 
 void particle_system::Init()
@@ -44,18 +50,18 @@ void particle_system::Init()
     int vertexAttribIndex = 0;
     int colorAttribIndex  = 1;
     
-    int pointAttr     = vertexComponents + colorComponents;
-	int totalDataSize = indicesPerQuad * totalParticles;
+    int pointAttr     = VERTEX_COMPONENTS + COLOR_COMPONENTS;
+	int totalDataSize = INDICES_PER_QUAD * totalParticles;
     
     int quadIndex = 0;
     for(int i = 0; i < totalDataSize; i+=6) {
-        (*compiledDataIndex)[i]   = 0 + vertsPerQuad * quadIndex;
-        (*compiledDataIndex)[i+1] = 1 + vertsPerQuad * quadIndex;
-        (*compiledDataIndex)[i+2] = 3 + vertsPerQuad * quadIndex;
+        (*compiledDataIndex)[i]   = 0 + VERTICES_PER_QUAD * quadIndex;
+        (*compiledDataIndex)[i+1] = 1 + VERTICES_PER_QUAD * quadIndex;
+        (*compiledDataIndex)[i+2] = 3 + VERTICES_PER_QUAD * quadIndex;
         
-        (*compiledDataIndex)[i+3] = 1 + vertsPerQuad * quadIndex;
-        (*compiledDataIndex)[i+4] = 2 + vertsPerQuad * quadIndex;
-        (*compiledDataIndex)[i+5] = 3 + vertsPerQuad * quadIndex;
+        (*compiledDataIndex)[i+3] = 1 + VERTICES_PER_QUAD * quadIndex;
+        (*compiledDataIndex)[i+4] = 2 + VERTICES_PER_QUAD * quadIndex;
+        (*compiledDataIndex)[i+5] = 3 + VERTICES_PER_QUAD * quadIndex;
         quadIndex++;
     }
 
@@ -66,20 +72,36 @@ void particle_system::Init()
 	glBindVertexArray(VAO);
     
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, compiledDataIndex->size() * sizeof(GLfloat), &(*compiledDataIndex)[0], GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                compiledDataIndex->size() * sizeof(GLfloat),
+                &(*compiledDataIndex)[0],
+                GL_STATIC_DRAW);
     
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, compiledData->size() * sizeof(GLfloat), nullptr, GL_STREAM_DRAW);
+	glBufferData(GL_ARRAY_BUFFER,
+                compiledData->size() * sizeof(GLfloat),
+                nullptr,
+                GL_STREAM_DRAW);
 
-	glVertexAttribPointer(vertexAttribIndex, vertexComponents, GL_FLOAT, GL_FALSE, pointAttr * sizeof(GLfloat), (void*)0);
+	glVertexAttribPointer(vertexAttribIndex,
+                            VERTEX_COMPONENTS,
+                            GL_FLOAT,
+                            GL_FALSE, 
+                            pointAttr * sizeof(GLfloat),
+                            (void*)0);
 	glEnableVertexAttribArray(vertexAttribIndex);
 
-	glVertexAttribPointer(colorAttribIndex, colorComponents, GL_FLOAT, GL_FALSE, pointAttr * sizeof(GLfloat), (void*)(vertexComponents * sizeof(GLfloat)));
+	glVertexAttribPointer(colorAttribIndex,
+                            COLOR_COMPONENTS,
+                            GL_FLOAT,
+                            GL_FALSE,
+                            pointAttr * sizeof(GLfloat),
+                            (void*)(VERTEX_COMPONENTS * sizeof(GLfloat)));
 	glEnableVertexAttribArray(colorAttribIndex);
 
-    glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
     particlesShader = std::make_unique<Shader>("Shaders/vertex.glsl", "Shaders/fragment.glsl");
     
@@ -121,7 +143,7 @@ void particle_system::Update(timestep ts)
         }
 
         (*currentLife)[i] -= delta;
-        (*position)[i] += (*velocity)[i] * delta;
+        (*position)[i]    += (*velocity)[i] * delta;
 
         // Lerp begin & end colors based on remaining life
         (*color)[i] = glm::mix((*colorEnd)[i], (*colorBegin)[i], (*currentLife)[i] / (*totalLife)[i]);
@@ -197,7 +219,12 @@ void particle_system::SwapData(const int a, const int b)
 
 void particle_system::SetRandom(const particle_attribute attribute, bool enabled)
 {
-    randomOptions = enabled ? randomOptions | attribute : randomOptions & ~attribute;
+    if (enabled) {
+        randomOptions = randomOptions | attribute;
+    }
+    else {
+        randomOptions = randomOptions & ~attribute;
+    }
 }
 
 void particle_system::RandomizeParticleAttributes()
@@ -231,8 +258,7 @@ void particle_system::PrepareUploadData()
 	if (lastActiveParticle >= 0) {
         int dataIndex = 0;
 		for (int i = 0; i <= lastActiveParticle; i++) {
-            // TODO: A lot of repeated data in here. Could bundle it better so less data is uploaded each frame
-            // Research dynamic batching
+            // TODO: Research dynamic batching
             (*compiledData)[dataIndex++] = (*position)[i].x + 0.5f * (*scale)[i].x;
             (*compiledData)[dataIndex++] = (*position)[i].y + 0.5f * (*scale)[i].y;
             (*compiledData)[dataIndex++] = 0.0f;
@@ -274,7 +300,10 @@ void particle_system::UploadToGPU()
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     //glBufferData(GL_ARRAY_BUFFER, compiledData->size() * sizeof(GLfloat), nullptr, GL_STREAM_DRAW); //Buffer orphaning
-    glBufferSubData(GL_ARRAY_BUFFER, 0, compiledData->size() * sizeof(GLfloat), &(*compiledData)[0]);
+    glBufferSubData(GL_ARRAY_BUFFER,
+                    0,
+                    compiledData->size() * sizeof(GLfloat),
+                    &(*compiledData)[0]);
 }
 
 void particle_system::Render()
@@ -300,5 +329,5 @@ void particle_system::Render()
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-    glDrawElements(GL_TRIANGLES, indicesPerQuad * (lastActiveParticle+1), GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, INDICES_PER_QUAD * (lastActiveParticle+1), GL_UNSIGNED_INT, 0);
 }

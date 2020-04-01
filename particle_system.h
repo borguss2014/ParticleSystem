@@ -42,14 +42,8 @@ struct particle_system
 	particle_system(int maxParticles = 1000);
 
     // PARTICLE PROPERTIES
-    int particlesToEmit = 0;
 	int totalParticles;
 	int lastActiveParticle = -1;
-
-	const int vertexComponents = 3;
-	const int colorComponents = 4;
-	const int vertsPerQuad = 4;
-    const int indicesPerQuad = 6;
     
     double msElapsed = 0;
     bool emitting = false;
