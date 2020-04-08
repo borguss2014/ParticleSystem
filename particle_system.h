@@ -73,6 +73,9 @@ struct particle_system
 	void SwapData(const int a, const int b);
 	void Destroy(const int index);
 	void Stop();
+	
+	void ParticleBurst(unsigned int nrParticles);
+	void ClearParticles();
 
 	void SetRandom(const particle_attribute attribute, bool value);
 	void RandomizeParticleAttributes();

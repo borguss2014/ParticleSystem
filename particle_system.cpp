@@ -185,10 +185,6 @@ void particle_system::Update(timestep ts)
     Render();
 }
 
-void particle_system::Stop()
-{
-    emitting = false;
-}
 
 void particle_system::Destroy(const int index)
 {
@@ -201,6 +197,32 @@ void particle_system::Destroy(const int index)
     }
     
     lastActiveParticle--;
+}
+
+void particle_system::Stop()
+{
+    emitting = false;
+}
+
+void particle_system::ParticleBurst(unsigned int nrParticles)
+{
+    for (int i = 0; i < nrParticles; i++) {
+        size_t firstInactivePIndex = (size_t)lastActiveParticle + 1;
+        (*position)[firstInactivePIndex] = particleData.position;
+        (*velocity)[firstInactivePIndex] = glm::vec2(distribution(generator) * particleData.speed.x, distribution(generator) * particleData.speed.y);
+        (*colorBegin)[firstInactivePIndex] = particleData.colorBegin;
+        (*colorEnd)[firstInactivePIndex] = particleData.colorEnd;
+        (*scaleBegin)[firstInactivePIndex] = glm::vec3(particleData.scaleBegin, 0.0f);
+        (*scaleEnd)[firstInactivePIndex] = glm::vec3(particleData.scaleEnd, 0.0f);
+        (*currentLife)[firstInactivePIndex] = particleData.totalLife;
+        (*totalLife)[firstInactivePIndex] = particleData.totalLife;
+        lastActiveParticle++;
+    }
+}
+
+void particle_system::ClearParticles()
+{
+    lastActiveParticle = -1;
 }
 
 void particle_system::SwapData(const int a, const int b)

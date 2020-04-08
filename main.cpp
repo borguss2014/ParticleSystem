@@ -89,6 +89,8 @@ int main(int argc, char* argv[])
     int fps = 0;
     int totalFps = 0;
 
+    int particleBurstNr = 1;
+
 	while (!glfwWindowShouldClose(window.m_Window))
 	{
         glClearColor(myColor.r, myColor.g, myColor.b, myColor.a);
@@ -150,6 +152,18 @@ int main(int argc, char* argv[])
                     particleSystem.Stop();
                 }
             }
+            ImGui::SameLine();
+            if (ImGui::Button("Clear")) {
+                particleSystem.ClearParticles();
+            }
+
+            ImGui::Separator();
+
+            ImGui::DragInt("", &particleBurstNr, 0.2f, 0.0f, 1000.0f, "%.d");
+            ImGui::SameLine();
+            if (ImGui::Button("Particle burst")) {
+                particleSystem.ParticleBurst(particleBurstNr);
+            }
 
             ImGui::Separator();
 
@@ -157,7 +171,7 @@ int main(int argc, char* argv[])
             {
                 ImGui::TextColored(ImVec4(0.0f, 0.0f, 1.0f, 1.0f), "Randomize"); 
 
-                checkboxTicked = ImGui::Checkbox("Emission origin", &randomPos);
+                checkboxTicked = ImGui::Checkbox("Emission Origin", &randomPos);
                 if (checkboxTicked) {
                     if (randomPos) {
                         particleSystem.SetRandom(particle_attribute::POSITION, true);
@@ -182,7 +196,7 @@ int main(int argc, char* argv[])
                 }
 
                 ImGui::SameLine();
-                checkboxTicked = ImGui::Checkbox("Particle life", &randomParticleLife);
+                checkboxTicked = ImGui::Checkbox("Particle Life", &randomParticleLife);
                 if (checkboxTicked) {
                     if (randomParticleLife) {
                         particleSystem.SetRandom(particle_attribute::TOTAL_LIFE, true);
