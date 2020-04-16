@@ -9,6 +9,8 @@
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void framebuffer_callback(GLFWwindow* window, int width, int height);
+void cursor_callback(GLFWwindow* window, double xpos, double ypos);
+void mouse_buttons_callback(GLFWwindow* window, int button, int action, int mods);
 
 void window::Init(window_props props)
 {
@@ -41,14 +43,19 @@ void window::Init(window_props props)
 		glfwTerminate();
 	}
 
+	glfwSetWindowUserPointer(m_Window, (void*)&mouseState);
 	glfwMakeContextCurrent(m_Window);
 
 	glViewport(0, 0, props.width, props.height);
 	glfwSwapInterval(0);
 	glfwSetKeyCallback(m_Window, key_callback);
+	glfwSetCursorPosCallback(m_Window, cursor_callback);
+	glfwSetMouseButtonCallback(m_Window, mouse_buttons_callback);
 	glfwSetFramebufferSizeCallback(m_Window, framebuffer_callback);
 	glfwSetWindowPos(m_Window, screenWidth / 2 - props.width / 2, screenHeight / 2 - props.height / 2);
 	glfwSetWindowTitle(m_Window, windowProperties.title.c_str());
+
+	glfwGetCursorPos(m_Window, &mouseState.xPos, &mouseState.yPos);
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -56,6 +63,27 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 	{
 		glfwSetWindowShouldClose(window, true);
+	}
+}
+
+void cursor_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	mouse_state* state = (mouse_state*)glfwGetWindowUserPointer(window);
+	state->xPos = xpos;
+	state->yPos = ypos;
+}
+
+void mouse_buttons_callback(GLFWwindow* window, int button, int action, int mods)
+{
+	mouse_state* state = (mouse_state*)glfwGetWindowUserPointer(window);
+
+	if (button == GLFW_MOUSE_BUTTON_LEFT) {
+		if (action == GLFW_PRESS) {
+			state->leftButtonClicked = true;
+		}
+		else if (action == GLFW_RELEASE) {
+			state->leftButtonClicked = false;
+		}
 	}
 }
 

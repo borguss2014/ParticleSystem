@@ -3,7 +3,7 @@
 #include "window.h"
 #include <random>
 
-#define VERTEX_COMPONENTS 3
+#define VERTEX_COMPONENTS 2
 #define COLOR_COMPONENTS  4
 #define VERTICES_PER_QUAD 4
 #define INDICES_PER_QUAD  6
@@ -15,7 +15,7 @@ particle_system::particle_system(int maxParticles)
 	: totalParticles(maxParticles)
 {    
 	position    = std::make_unique<std::vector<glm::vec2>>();
-	velocity    = std::make_unique<std::vector<glm::vec2>>();
+	speed       = std::make_unique<std::vector<glm::vec2>>();
 	colorBegin  = std::make_unique<std::vector<glm::vec4>>();
 	colorEnd    = std::make_unique<std::vector<glm::vec4>>();
 	color       = std::make_unique<std::vector<glm::vec4>>();
@@ -24,9 +24,10 @@ particle_system::particle_system(int maxParticles)
     scale       = std::make_unique<std::vector<glm::vec3>>();
 	currentLife = std::make_unique<std::vector<float>>();
     totalLife   = std::make_unique<std::vector<float>>();
+    models      = std::make_unique<std::vector<glm::mat4>>();
 
 	position    ->resize(totalParticles);
-	velocity    ->resize(totalParticles);
+	speed       ->resize(totalParticles);
 	colorBegin  ->resize(totalParticles);
 	colorEnd    ->resize(totalParticles);
 	color       ->resize(totalParticles);
@@ -35,73 +36,78 @@ particle_system::particle_system(int maxParticles)
     scale       ->resize(totalParticles);
     currentLife ->resize(totalParticles);
 	totalLife   ->resize(totalParticles);
-    
-    int particleSize  = (VERTEX_COMPONENTS + COLOR_COMPONENTS) * VERTICES_PER_QUAD;
-    int totalDataSize = particleSize * totalParticles;
-
-	compiledData        = std::make_unique<std::vector<float>>();
-    compiledDataIndex   = std::make_unique<std::vector<int>>();
-    compiledData        ->resize(totalDataSize);
-    compiledDataIndex   ->resize(INDICES_PER_QUAD * totalParticles);
+    models      ->resize(totalParticles);
 }
 
 void particle_system::Init()
 {
     int vertexAttribIndex = 0;
     int colorAttribIndex  = 1;
-    
-    int pointAttr     = VERTEX_COMPONENTS + COLOR_COMPONENTS;
-	int totalDataSize = INDICES_PER_QUAD * totalParticles;
-    
-    int quadIndex = 0;
-    for(int i = 0; i < totalDataSize; i+=6) {
-        (*compiledDataIndex)[i]   = 0 + VERTICES_PER_QUAD * quadIndex;
-        (*compiledDataIndex)[i+1] = 1 + VERTICES_PER_QUAD * quadIndex;
-        (*compiledDataIndex)[i+2] = 3 + VERTICES_PER_QUAD * quadIndex;
-        
-        (*compiledDataIndex)[i+3] = 1 + VERTICES_PER_QUAD * quadIndex;
-        (*compiledDataIndex)[i+4] = 2 + VERTICES_PER_QUAD * quadIndex;
-        (*compiledDataIndex)[i+5] = 3 + VERTICES_PER_QUAD * quadIndex;
-        quadIndex++;
-    }
+
+    float pVerts[] = {
+        0.5f,  0.5f,
+        0.5f, -0.5f,
+       -0.5f, -0.5f,
+       -0.5f,  0.5f,
+    };
+
+    unsigned int pIndices[] = {
+        0, 1, 3,
+        1, 2, 3
+    };
 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
+    glGenBuffers(1, &MODELS_VBO);
+    glGenBuffers(1, &COLORS_VBO);
 
 	glBindVertexArray(VAO);
     
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                compiledDataIndex->size() * sizeof(GLfloat),
-                &(*compiledDataIndex)[0],
-                GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(pIndices), pIndices, GL_STATIC_DRAW);
     
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER,
-                compiledData->size() * sizeof(GLfloat),
-                nullptr,
-                GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(pVerts), pVerts, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(vertexAttribIndex,
-                            VERTEX_COMPONENTS,
-                            GL_FLOAT,
-                            GL_FALSE, 
-                            pointAttr * sizeof(GLfloat),
-                            (void*)0);
-	glEnableVertexAttribArray(vertexAttribIndex);
+    glEnableVertexAttribArray(vertexAttribIndex);
+    glVertexAttribPointer(vertexAttribIndex,
+        VERTEX_COMPONENTS,
+        GL_FLOAT,
+        GL_FALSE,
+        VERTEX_COMPONENTS * sizeof(GLfloat),
+        (void*)0);
 
-	glVertexAttribPointer(colorAttribIndex,
-                            COLOR_COMPONENTS,
-                            GL_FLOAT,
-                            GL_FALSE,
-                            pointAttr * sizeof(GLfloat),
-                            (void*)(VERTEX_COMPONENTS * sizeof(GLfloat)));
-	glEnableVertexAttribArray(colorAttribIndex);
+    glBindBuffer(GL_ARRAY_BUFFER, COLORS_VBO);
+    glBufferData(GL_ARRAY_BUFFER,  totalParticles * sizeof(glm::vec4), nullptr, GL_STREAM_DRAW);
+    glEnableVertexAttribArray(colorAttribIndex);
+    glVertexAttribPointer(colorAttribIndex,
+        COLOR_COMPONENTS,
+        GL_FLOAT,
+        GL_FALSE,
+        COLOR_COMPONENTS * sizeof(GLfloat),
+        (void*)0);
+    glVertexAttribDivisor(colorAttribIndex, 1);
 
+    glBindBuffer(GL_ARRAY_BUFFER, MODELS_VBO);
+    glBufferData(GL_ARRAY_BUFFER, totalParticles * sizeof(glm::mat4), nullptr, GL_STREAM_DRAW);
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4)));
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(2 * sizeof(glm::vec4)));
+    glEnableVertexAttribArray(5);
+    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(3 * sizeof(glm::vec4)));
+
+    glVertexAttribDivisor(2, 1);
+    glVertexAttribDivisor(3, 1);
+    glVertexAttribDivisor(4, 1);
+    glVertexAttribDivisor(5, 1);
+
+    glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
 
     particlesShader = std::make_unique<Shader>("Shaders/vertex.glsl", "Shaders/fragment.glsl");
     
@@ -114,20 +120,32 @@ void particle_system::Init()
 void particle_system::Emit()
 {
     if (!looping) {
-        int firstInactivePIndex = lastActiveParticle + 1;
-        (*position)[firstInactivePIndex]    = particleData.position;
-        (*velocity)[firstInactivePIndex]    = glm::vec2(distribution(generator) * particleData.speed.x, distribution(generator) * particleData.speed.y);
-        (*colorBegin)[firstInactivePIndex]  = particleData.colorBegin;
-        (*colorEnd)[firstInactivePIndex]    = particleData.colorEnd;
-        (*scaleBegin)[firstInactivePIndex]  = glm::vec3(particleData.scaleBegin, 0.0f);
-        (*scaleEnd)[firstInactivePIndex]    = glm::vec3(particleData.scaleEnd, 0.0f);
-        (*currentLife)[firstInactivePIndex] = particleData.totalLife;
-        (*totalLife)[firstInactivePIndex]   = particleData.totalLife;
-        lastActiveParticle++;
-        
+        CreateParticle(particleData);
         std::cout << "Particle @ index " << lastActiveParticle << " created" << std::endl;
     }
     emitting = true;
+}
+
+void particle_system::CreateParticle(const particle_data& data)
+{
+    int firstInactivePIndex = lastActiveParticle + 1;
+    (*position)[firstInactivePIndex]    = data.position;
+    (*speed)[firstInactivePIndex] = 
+        glm::vec2(distribution(generator) * data.speed.x, distribution(generator) * data.speed.y);
+    (*colorBegin)[firstInactivePIndex]  = data.colorBegin;
+    (*colorEnd)[firstInactivePIndex]    = data.colorEnd;
+    (*scaleBegin)[firstInactivePIndex]  = glm::vec3(data.scaleBegin, 0.0f);
+    (*scaleEnd)[firstInactivePIndex]    = glm::vec3(data.scaleEnd, 0.0f);
+    (*currentLife)[firstInactivePIndex] = data.totalLife;
+    (*totalLife)[firstInactivePIndex]   = data.totalLife;
+
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(data.position, 0.0f));
+    model = glm::scale(model, glm::vec3(data.scaleEnd, 0.0f));
+
+    (*models)[firstInactivePIndex] = model;
+
+    lastActiveParticle++;
 }
 
 void particle_system::Update(timestep ts)
@@ -143,12 +161,20 @@ void particle_system::Update(timestep ts)
         }
 
         (*currentLife)[i] -= delta;
-        (*position)[i]    += (*velocity)[i] * delta;
+        (*position)[i]    += (*speed)[i] * delta;
 
         // Lerp begin & end colors based on remaining life
         (*color)[i] = glm::mix((*colorEnd)[i], (*colorBegin)[i], (*currentLife)[i] / (*totalLife)[i]);
         (*scale)[i] = glm::mix((*scaleEnd)[i], (*scaleBegin)[i], (*currentLife)[i] / (*totalLife)[i]);
+
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3((*position)[i], 0.0f));
+        model = glm::scale(model, (*scale)[i]);
+
+        (*models)[i] = model;
     }
+
+    //printf("State updated \n");
 
     // Timed particle emission
     if (emitting) {
@@ -159,28 +185,16 @@ void particle_system::Update(timestep ts)
                     RandomizeParticleAttributes();
                 }
 
-                // TODO: Allow randomized initial properties
-                size_t firstInactivePIndex = (size_t)lastActiveParticle + 1;
-                (*position)[firstInactivePIndex]    = particleData.position;
-                (*velocity)[firstInactivePIndex]    = glm::vec2(distribution(generator) * particleData.speed.x, distribution(generator) * particleData.speed.y);
-                (*colorBegin)[firstInactivePIndex]  = particleData.colorBegin;
-                (*colorEnd)[firstInactivePIndex]    = particleData.colorEnd;
-                (*scaleBegin)[firstInactivePIndex]  = glm::vec3(particleData.scaleBegin, 0.0f);
-                (*scaleEnd)[firstInactivePIndex]    = glm::vec3(particleData.scaleEnd, 0.0f);
-                (*currentLife)[firstInactivePIndex] = particleData.totalLife;
-                (*totalLife)[firstInactivePIndex]   = particleData.totalLife;
-                lastActiveParticle++;
-
+                CreateParticle(particleData);
                 msElapsed = 0;
                 // std::cout << "Particle @ index " << lastActiveParticle << " created" << std::endl;
             }
         }
         else {
-            std::cout << "Limit reached! Cannot add more particles" << std::endl;
+            //std::cout << "Limit reached! Cannot add more particles" << std::endl;
         }
     }
 
-    PrepareUploadData();
     UploadToGPU();
     Render();
 }
@@ -207,16 +221,7 @@ void particle_system::Stop()
 void particle_system::ParticleBurst(unsigned int nrParticles)
 {
     for (int i = 0; i < nrParticles; i++) {
-        size_t firstInactivePIndex = (size_t)lastActiveParticle + 1;
-        (*position)[firstInactivePIndex] = particleData.position;
-        (*velocity)[firstInactivePIndex] = glm::vec2(distribution(generator) * particleData.speed.x, distribution(generator) * particleData.speed.y);
-        (*colorBegin)[firstInactivePIndex] = particleData.colorBegin;
-        (*colorEnd)[firstInactivePIndex] = particleData.colorEnd;
-        (*scaleBegin)[firstInactivePIndex] = glm::vec3(particleData.scaleBegin, 0.0f);
-        (*scaleEnd)[firstInactivePIndex] = glm::vec3(particleData.scaleEnd, 0.0f);
-        (*currentLife)[firstInactivePIndex] = particleData.totalLife;
-        (*totalLife)[firstInactivePIndex] = particleData.totalLife;
-        lastActiveParticle++;
+        CreateParticle(particleData);
     }
 }
 
@@ -228,7 +233,7 @@ void particle_system::ClearParticles()
 void particle_system::SwapData(const int a, const int b)
 {
 	std::swap((*position)[a],    (*position)[b]);
-	std::swap((*velocity)[a],    (*velocity)[b]);
+	std::swap((*speed)[a],       (*speed)[b]);
 	std::swap((*colorBegin)[a],  (*colorBegin)[b]);
 	std::swap((*colorEnd)[a],    (*colorEnd)[b]);
 	std::swap((*color)[a],       (*color)[b]);
@@ -237,6 +242,7 @@ void particle_system::SwapData(const int a, const int b)
     std::swap((*scale)[a],       (*scale)[b]);
     std::swap((*currentLife)[a], (*currentLife)[b]);
 	std::swap((*totalLife)[a],   (*totalLife)[b]);
+    std::swap((*models)[a],      (*models)[b]);
 }
 
 void particle_system::SetRandom(const particle_attribute attribute, bool enabled)
@@ -256,100 +262,77 @@ void particle_system::RandomizeParticleAttributes()
         float wHeight = window::s_Instance->windowProperties.height;
 
         // TODO: Positions should be based on screen coordinates
-        std::uniform_real_distribution<double> pos_randX(-80, 80);
-        std::uniform_real_distribution<double> pos_randY(-80, 80);
+        std::uniform_real_distribution<double> pos_randX(rDistr.posXRange.x, rDistr.posXRange.y);
+        std::uniform_real_distribution<double> pos_randY(rDistr.posYRange.x, rDistr.posYRange.y);
         particleData.position.x = pos_randX(generator);
         particleData.position.y = pos_randY(generator);
     }
 
     if (randomOptions & SPEED) {
-        std::uniform_real_distribution<double> speed_randX(1, 5);
-        std::uniform_real_distribution<double> speed_randY(1, 5);
+        std::uniform_real_distribution<double> speed_randX(rDistr.speedXRange.x, rDistr.speedXRange.y);
+        std::uniform_real_distribution<double> speed_randY(rDistr.speedYRange.x, rDistr.speedYRange.y);
         particleData.speed.x = speed_randX(generator);
         particleData.speed.y = speed_randY(generator);
     }
 
     if (randomOptions & TOTAL_LIFE) {
-        std::uniform_real_distribution<double> particleLifeRand(0.1, 10);
+        std::uniform_real_distribution<double> particleLifeRand(rDistr.lifeRange.x, rDistr.lifeRange.y);
         particleData.totalLife = particleLifeRand(generator);
     }
-}
 
-void particle_system::PrepareUploadData()
-{
-	if (lastActiveParticle >= 0) {
-        int dataIndex = 0;
-		for (int i = 0; i <= lastActiveParticle; i++) {
-            // TODO: Research dynamic batching
-            (*compiledData)[dataIndex++] = (*position)[i].x + 0.5f * (*scale)[i].x;
-            (*compiledData)[dataIndex++] = (*position)[i].y + 0.5f * (*scale)[i].y;
-            (*compiledData)[dataIndex++] = 0.0f;
-            (*compiledData)[dataIndex++] = (*color)[i].r;
-            (*compiledData)[dataIndex++] = (*color)[i].g;
-            (*compiledData)[dataIndex++] = (*color)[i].b;
-            (*compiledData)[dataIndex++] = (*color)[i].a;
+   /* if (randomOptions & SCALE_BEGIN) {
 
-            (*compiledData)[dataIndex++] = (*position)[i].x + 0.5f * (*scale)[i].x;
-            (*compiledData)[dataIndex++] = (*position)[i].y - 0.5f * (*scale)[i].y;
-            (*compiledData)[dataIndex++] = 0.0f;
-            (*compiledData)[dataIndex++] = (*color)[i].r;
-            (*compiledData)[dataIndex++] = (*color)[i].g;
-            (*compiledData)[dataIndex++] = (*color)[i].b;
-            (*compiledData)[dataIndex++] = (*color)[i].a;
+    }
 
-            (*compiledData)[dataIndex++] = (*position)[i].x - 0.5f * (*scale)[i].x;
-            (*compiledData)[dataIndex++] = (*position)[i].y - 0.5f * (*scale)[i].y;
-            (*compiledData)[dataIndex++] = 0.0f;
-            (*compiledData)[dataIndex++] = (*color)[i].r;
-            (*compiledData)[dataIndex++] = (*color)[i].g;
-            (*compiledData)[dataIndex++] = (*color)[i].b;
-            (*compiledData)[dataIndex++] = (*color)[i].a;
+    if (randomOptions & SCALE_END) {
 
-            (*compiledData)[dataIndex++] = (*position)[i].x - 0.5f * (*scale)[i].x;
-            (*compiledData)[dataIndex++] = (*position)[i].y + 0.5f * (*scale)[i].y;
-            (*compiledData)[dataIndex++] = 0.0f;
-            (*compiledData)[dataIndex++] = (*color)[i].r;
-            (*compiledData)[dataIndex++] = (*color)[i].g;
-            (*compiledData)[dataIndex++] = (*color)[i].b;
-            (*compiledData)[dataIndex++] = (*color)[i].a;
-		}
-	}
+    }
+
+    if (randomOptions & COLOR_BEGIN) {
+
+    }
+
+    if (randomOptions & COLOR_END) {
+
+    }*/
 }
 
 void particle_system::UploadToGPU()
 {
     glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    //glBufferData(GL_ARRAY_BUFFER, compiledData->size() * sizeof(GLfloat), nullptr, GL_STREAM_DRAW); //Buffer orphaning
+    glBindBuffer(GL_ARRAY_BUFFER, COLORS_VBO);
     glBufferSubData(GL_ARRAY_BUFFER,
-                    0,
-                    compiledData->size() * sizeof(GLfloat),
-                    &(*compiledData)[0]);
+        0,
+        color->size() * sizeof(glm::vec4),
+        &(*color)[0]);
+    glBindBuffer(GL_ARRAY_BUFFER, MODELS_VBO);
+    glBufferSubData(GL_ARRAY_BUFFER,
+        0,
+        models->size() * sizeof(glm::mat4),
+        &(*models)[0]);
 }
 
 void particle_system::Render()
 {
     particlesShader->Bind();
 
-    glm::mat4 model      = glm::mat4(1.0f);
     glm::mat4 view       = glm::mat4(1.0f);
     glm::mat4 projection = glm::mat4(1.0f);
 
     float wWidth  = window::s_Instance->windowProperties.width;
     float wHeight = window::s_Instance->windowProperties.height;
 
-    model       = glm::scale(model, glm::vec3(20.0f, 20.0f, 0.0f));
     view        = glm::translate(view, glm::vec3(0.0f, 0.0f, 0.0f));
-    projection  = glm::ortho(-wWidth, wWidth, -wHeight, wHeight);
+    projection  = glm::ortho(0.0f, wWidth, wHeight, 0.0f);
 
-    int modelLoc = glGetUniformLocation(particlesShader->ID, "model");
     int viewLoc  = glGetUniformLocation(particlesShader->ID, "view");
     int projLoc  = glGetUniformLocation(particlesShader->ID, "projection");
 
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-    glDrawElements(GL_TRIANGLES, INDICES_PER_QUAD * (lastActiveParticle+1), GL_UNSIGNED_INT, 0);
+    glBindVertexArray(VAO);
+    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, totalParticles);
+    //glDrawArraysInstanced(GL_TRIANGLES, 0, 4, totalParticles);
+    glBindVertexArray(0);
 }

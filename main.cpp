@@ -64,14 +64,14 @@ int main(int argc, char* argv[])
     bool randomParticleLife = false;
    
     particle_data data = {};
-    data.position = glm::vec2(0.0f, 0.0f);
-    data.speed = glm::vec2(1, 1);
-    data.colorBegin = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-    data.colorEnd = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-    data.scaleBegin = glm::vec2(0.0f, 0.0f);
-    data.scaleEnd = glm::vec2(4.5f, 4.5f);
-    data.totalLife = 3;
-    data.emitQuantity = 100;
+    data.position          = glm::vec2(0.0f, 0.0f);
+    data.speed             = glm::vec2(1, 1);
+    data.colorBegin        = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+    data.colorEnd          = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+    data.scaleBegin        = glm::vec2(0.0f, 0.0f);
+    data.scaleEnd          = glm::vec2(4.5f, 4.5f);
+    data.totalLife         = 3;
+    data.emitQuantity      = 100;
     data.emissionFrequency = 10.0f;
 
     particle_system particleSystem;
@@ -112,6 +112,10 @@ int main(int argc, char* argv[])
         
         std::stringstream ss;
         ss << "FPS: " << totalFps << " | " << "Ms / frame: " << floorf(ts.GetMilliseconds() * 100) / 100;
+
+        if (window.mouseState.leftButtonClicked) {
+            particleSystem.particleData.position = glm::vec2(window.mouseState.xPos, window.mouseState.yPos);
+        }
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -159,14 +163,6 @@ int main(int argc, char* argv[])
 
             ImGui::Separator();
 
-            ImGui::DragInt("", &particleBurstNr, 0.2f, 0.0f, 1000.0f, "%.d");
-            ImGui::SameLine();
-            if (ImGui::Button("Particle burst")) {
-                particleSystem.ParticleBurst(particleBurstNr);
-            }
-
-            ImGui::Separator();
-
             // Randomize section
             {
                 ImGui::TextColored(ImVec4(0.0f, 0.0f, 1.0f, 1.0f), "Randomize"); 
@@ -207,9 +203,40 @@ int main(int argc, char* argv[])
                     }
                 }
 
-                ImGui::InputFloat2("Emission origin range", (float*)&particleSystem.particleData.position); ImGui::ShowDemoWindow();
-                ImGui::InputFloat2("Speed range", (float*)&particleSystem.particleData.position);
-                ImGui::InputFloat2("Particle life range", (float*)&particleSystem.particleData.position);
+                ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
+                if (ImGui::BeginTabBar("RandomTabBar", tab_bar_flags))
+                {
+                    if (ImGui::BeginTabItem("Particles origin"))
+                    {
+                        ImGui::InputFloat2("X", (float*)&particleSystem.rDistr.posXRange);
+                        ImGui::InputFloat2("Y", (float*)&particleSystem.rDistr.posYRange);
+                        ImGui::EndTabItem();
+                    }
+                    if (ImGui::BeginTabItem("Speed"))
+                    {
+                        ImGui::InputFloat2("X", (float*)&particleSystem.rDistr.speedXRange);
+                        ImGui::InputFloat2("Y", (float*)&particleSystem.rDistr.speedYRange);
+                        ImGui::EndTabItem();
+                    }
+                    if (ImGui::BeginTabItem("Life"))
+                    {
+                        ImGui::InputFloat2("Range", (float*)&particleSystem.rDistr.lifeRange);
+                        ImGui::EndTabItem();
+                    }
+                    /*if (ImGui::BeginTabItem("Scale"))
+                    {
+                        ImGui::InputFloat2("Min", (float*)&particleSystem.rDistr.minScale);
+                        ImGui::InputFloat2("Max", (float*)&particleSystem.rDistr.maxScale);
+                        ImGui::EndTabItem();
+                    }
+                    if (ImGui::BeginTabItem("Color"))
+                    {
+                        ImGui::InputFloat2("First", (float*)&particleSystem.rDistr.firstColor);
+                        ImGui::InputFloat2("Last", (float*)&particleSystem.rDistr.lastColor);
+                        ImGui::EndTabItem();
+                    }*/
+                    ImGui::EndTabBar();
+                }                
             }
 
             ImGui::Separator();
@@ -217,7 +244,12 @@ int main(int argc, char* argv[])
             // System control
             {
                 ImGui::TextColored(ImVec4(0.0f, 0.0f, 1.0f, 1.0f), "System control");
-                ImGui::DragInt("Nr. particles", (int*)&particleSystem.particleData.emitQuantity, 0.2f, 0.0f, 1000.0f, "%.d");
+                ImGui::DragInt("", &particleBurstNr, 0.2f, 0.0f, 1000.0f, "%.d");
+                ImGui::SameLine();
+                if (ImGui::Button("Particle burst")) {
+                    particleSystem.ParticleBurst(particleBurstNr);
+                }
+                ImGui::DragInt("Nr. particles", (int*)&particleSystem.particleData.emitQuantity, 0.2f, 0.0f, particleSystem.totalParticles, "%.d");
                 ImGui::DragFloat("Timeframe", (float*)&particleSystem.particleData.emissionFrequency, 0.2f, 0.0f, 100.0f, "%.2f", 1.0f);
                 ImGui::InputFloat2("Position", (float*)&particleSystem.particleData.position);
                 ImGui::InputFloat2("Speed", (float*)&particleSystem.particleData.speed);

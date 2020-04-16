@@ -37,9 +37,22 @@ enum particle_attribute
 	TOTAL_LIFE			= 0x100
 };
 
+struct random_distributions
+{
+	glm::vec2 posXRange	  = glm::vec2(-80, 80);
+	glm::vec2 posYRange   = glm::vec2(-80, 80);
+	glm::vec2 speedXRange = glm::vec2(1, 5);
+	glm::vec2 speedYRange = glm::vec2(1, 5);
+	glm::vec2 lifeRange   = glm::vec2(0.1, 10);
+	/*glm::vec2 scaleXRange = glm::vec2(0);
+	glm::vec2 scaleYRange = glm::vec2(4.5, 4.5);
+	glm::vec4 firstColor  = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+	glm::vec4 lastColor   = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);*/
+};
+
 struct particle_system
 {
-	particle_system(int maxParticles = 1000);
+	particle_system(int maxParticles = 10000);
 
     // PARTICLE PROPERTIES
 	int totalParticles;
@@ -52,27 +65,29 @@ struct particle_system
 
 	// PARTICLES
 	std::unique_ptr<std::vector<glm::vec2>> position;
-	std::unique_ptr<std::vector<glm::vec2>> velocity;
+	std::unique_ptr<std::vector<glm::vec2>> speed;
 	std::unique_ptr<std::vector<glm::vec4>> colorBegin;
 	std::unique_ptr<std::vector<glm::vec4>> colorEnd;
+	std::unique_ptr<std::vector<glm::vec4>> color;
 	std::unique_ptr<std::vector<glm::vec3>> scaleBegin;
 	std::unique_ptr<std::vector<glm::vec3>> scaleEnd;
-	std::unique_ptr<std::vector<glm::vec4>> color;
 	std::unique_ptr<std::vector<glm::vec3>> scale;
 	std::unique_ptr<std::vector<float>> currentLife;
 	std::unique_ptr<std::vector<float>> totalLife;
-
-	std::unique_ptr<std::vector<float>> compiledData;
-    std::unique_ptr<std::vector<int>> compiledDataIndex;
+	std::unique_ptr<std::vector<glm::mat4>> models;
     
     particle_data particleData;
+	random_distributions rDistr;
 
 	void Init();
 	void Emit();
+	void CreateParticle(const particle_data& data);
 	void Update(timestep ts);
 	void SwapData(const int a, const int b);
 	void Destroy(const int index);
 	void Stop();
+
+	inline int GetActiveParticles() { return(lastActiveParticle + 1); };
 	
 	void ParticleBurst(unsigned int nrParticles);
 	void ClearParticles();
@@ -80,10 +95,9 @@ struct particle_system
 	void SetRandom(const particle_attribute attribute, bool value);
 	void RandomizeParticleAttributes();
 
-	void PrepareUploadData();
 	void UploadToGPU();
 	void Render();
 
-	GLuint VAO, VBO, EBO;
+	GLuint VAO, VBO, EBO, MODELS_VBO, COLORS_VBO;
     std::unique_ptr<Shader> particlesShader;
 };
